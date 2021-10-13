@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 )
 
@@ -28,6 +29,10 @@ var lastReviewRegex *regexp.Regexp
 var nextReviewRegex *regexp.Regexp
 var activeRegex *regexp.Regexp
 var dividerRegex *regexp.Regexp
+var cardTemplate *template.Template
+
+//go:embed card.txt.tmpl
+var cardTemplateText string
 
 func init() {
 	versionRegex = regexp.MustCompile(`^Version *=`)
@@ -35,6 +40,7 @@ func init() {
 	nextReviewRegex = regexp.MustCompile(`^NextReview *=`)
 	activeRegex = regexp.MustCompile(`^Active *=`)
 	dividerRegex = regexp.MustCompile(`^---`)
+	cardTemplate = template.Must(template.New("card").Parse(cardTemplateText))
 }
 
 // Returns a string of length n that is comprised of random letters
