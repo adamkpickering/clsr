@@ -69,16 +69,4 @@ Active = %t
 	if parsedCard.Answer != inputCard.Answer {
 		t.Errorf("mismatched Answer")
 	}
-	fmt.Printf("inputCard: %q\n", inputCard.Answer)
-	fmt.Printf("parsedCard: %q\n", parsedCard.Answer)
 }
-
-//type Card struct {
-//	ID         string
-//	Version    int
-//	LastReview time.Time
-//	NextReview time.Time
-//	Question   string
-//	Answer     string
-//	Active     bool
-//}

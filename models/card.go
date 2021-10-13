@@ -141,7 +141,6 @@ func parseCardFromString(data string, id string) (Card, error) {
 			}
 
 		case state == answer:
-			fmt.Printf("%q\n", line)
 			answer_lines = append(answer_lines, line)
 		}
 	}
