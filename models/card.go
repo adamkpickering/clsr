@@ -3,6 +3,8 @@ package models
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -73,11 +75,24 @@ func NewCard(question string, answer string) Card {
 	}
 }
 
-//func ParseCardFromFile(path string) (Card, error) {
-//	// check that path exists
-//	// read card into string
-//	// parse the card and return
-//}
+func parseCardFromFile(path string) (Card, error) {
+	// get id out of file name
+	filename := filepath.Base(path)
+	id := strings.Split(filename, ".")[0]
+
+	// read the file
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Card{}, fmt.Errorf("failed to read card file: %s", err)
+	}
+
+	// parse the card and return
+	card, err := parseCardFromString(string(data), id)
+	if err != nil {
+		return Card{}, fmt.Errorf("failed to parse card file: %s", err)
+	}
+	return card, nil
+}
 
 func parseCardFromString(data string, id string) (Card, error) {
 	card := Card{
