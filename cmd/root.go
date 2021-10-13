@@ -1,7 +1,7 @@
 /*
 Copyright © 2021 ADAM PICKERING
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
+ ermission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
@@ -24,6 +24,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
@@ -34,13 +35,14 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "clsr",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Learn things efficiently on the CLI using spaced repetition",
+	Long: `clsr is a CLI tool that allows you to manage and study decks
+of virtual flash cards. It takes care of scheduling so that you do not
+review them more often than necessary. Similar to Anki and other
+spaced repetition applications, except cards are always stored in
+plain text. By doing this, we gain all the usual benefits of storing
+data in plain text, such as scriptability and the ability to commit
+data to version control.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
