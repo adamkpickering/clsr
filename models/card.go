@@ -171,3 +171,19 @@ func parseCardFromString(data string, id string) (Card, error) {
 
 	return card, nil
 }
+
+func (card Card) writeToFile(path string) error {
+	fd, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("failed to open card file for writing: %s", err)
+	}
+	defer fd.Close()
+
+	// fill template and write to file
+	err = cardTemplate.Execute(fd, card)
+	if err != nil {
+		return fmt.Errorf("failed to fill card template: %s", err)
+	}
+
+	return nil
+}
