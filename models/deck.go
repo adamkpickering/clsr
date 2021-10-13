@@ -42,3 +42,25 @@ func LoadDeck(path string) (*Deck, error) {
 
 	return deck, nil
 }
+
+func NewDeck(path string) (*Deck, error) {
+	// check whether it exists
+	if _, err := os.Stat(path); err == nil {
+		return &Deck{}, fmt.Errorf("Location %s is already occupied", path)
+	}
+
+	// create any needed directories
+	err := os.MkdirAll(path, os.FileMode(int(0755)))
+	if err != nil {
+		return &Deck{}, fmt.Errorf("Could not create directory %s: %s", path, err)
+	}
+
+	deck := &Deck{
+		Name: filepath.Base(path),
+	}
+	return deck, nil
+}
+
+//func (deck *Deck) Write() error {
+//	fmt.Prinln("this is deck")
+//}
