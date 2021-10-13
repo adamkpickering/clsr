@@ -1,6 +1,7 @@
 package models
 
 import (
+	_ "embed"
 	"fmt"
 	"math/rand"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 )
 
@@ -21,13 +23,15 @@ const (
 
 const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
 
-const dateLayout = "2006-01-02T15:04:05Z"
-
 var versionRegex *regexp.Regexp
 var lastReviewRegex *regexp.Regexp
 var nextReviewRegex *regexp.Regexp
 var activeRegex *regexp.Regexp
 var dividerRegex *regexp.Regexp
+var cardTemplate *template.Template
+
+//go:embed card.txt.tmpl
+var cardTemplateText string
 
 func init() {
 	versionRegex = regexp.MustCompile(`^Version *=`)
@@ -35,6 +39,17 @@ func init() {
 	nextReviewRegex = regexp.MustCompile(`^NextReview *=`)
 	activeRegex = regexp.MustCompile(`^Active *=`)
 	dividerRegex = regexp.MustCompile(`^---`)
+	cardTemplate = template.Must(template.New("card").Parse(cardTemplateText))
+}
+
+type Card struct {
+	ID         string
+	Version    int
+	LastReview time.Time
+	NextReview time.Time
+	Active     bool
+	Question   string
+	Answer     string
 }
 
 // Returns a string of length n that is comprised of random letters
@@ -48,16 +63,6 @@ func randomString(n int) string {
 	return string(b)
 }
 
-type Card struct {
-	ID         string
-	Version    int
-	LastReview time.Time
-	NextReview time.Time
-	Active     bool
-	Question   string
-	Answer     string
-}
-
 func NewCard(question string, answer string) Card {
 	// generate ID
 	rand.Seed(time.Now().UnixNano())
@@ -68,7 +73,7 @@ func NewCard(question string, answer string) Card {
 		ID:         id,
 		Version:    0,
 		LastReview: time.Time{},
-		NextReview: time.Now(),
+		NextReview: time.Now().UTC().Round(time.Second),
 		Question:   question,
 		Answer:     answer,
 		Active:     true,
@@ -120,7 +125,7 @@ func parseCardFromString(data string, id string) (Card, error) {
 			} else if lastReviewRegex.MatchString(line) {
 				raw_value := strings.Split(line, "=")[1]
 				trimmed_value := strings.TrimSpace(raw_value)
-				value, err := time.Parse(dateLayout, trimmed_value)
+				value, err := time.Parse(time.RFC3339, trimmed_value)
 				if err != nil {
 					return Card{}, fmt.Errorf("failed to parse LastReview: %s", err)
 				}
@@ -129,7 +134,7 @@ func parseCardFromString(data string, id string) (Card, error) {
 			} else if nextReviewRegex.MatchString(line) {
 				raw_value := strings.Split(line, "=")[1]
 				trimmed_value := strings.TrimSpace(raw_value)
-				value, err := time.Parse(dateLayout, trimmed_value)
+				value, err := time.Parse(time.RFC3339, trimmed_value)
 				if err != nil {
 					return Card{}, fmt.Errorf("failed to parse NextReview: %s", err)
 				}
@@ -164,4 +169,32 @@ func parseCardFromString(data string, id string) (Card, error) {
 	card.Answer = strings.Join(answer_lines, "\n")
 
 	return card, nil
+}
+
+func (card Card) writeToDir(dir string) error {
+	// process card into a map
+	outputCard := map[string]string{}
+	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
+	outputCard["LastReview"] = card.LastReview.Format(time.RFC3339)
+	outputCard["NextReview"] = card.NextReview.Format(time.RFC3339)
+	outputCard["Active"] = fmt.Sprintf("%t", card.Active)
+	outputCard["Question"] = card.Question
+	outputCard["Answer"] = card.Answer
+
+	// open/create file
+	filename := fmt.Sprintf("%s.txt", card.ID)
+	path := filepath.Join(dir, filename)
+	fd, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("failed to open card file for writing: %s", err)
+	}
+	defer fd.Close()
+
+	// fill template and write to file
+	err = cardTemplate.Execute(fd, outputCard)
+	if err != nil {
+		return fmt.Errorf("failed to fill card template: %s", err)
+	}
+
+	return nil
 }
