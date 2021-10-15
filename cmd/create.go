@@ -22,9 +22,9 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/adamkpickering/clsr/models"
 	"github.com/spf13/cobra"
@@ -39,6 +39,12 @@ var createCmd = &cobra.Command{
 	Long:  "\nAllows the user to create clsr resources.",
 	Args:  cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// check that the directory has been initialized
+		if _, err := os.Stat(deckDirectory); errors.Is(err, os.ErrNotExist) {
+			msg := "could not find %s. Please call `clsr init` and try again."
+			return fmt.Errorf(msg, deckDirectory)
+		}
+
 		// construct DeckSource
 		deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
 		if err != nil {
@@ -49,11 +55,12 @@ var createCmd = &cobra.Command{
 		switch resourceType {
 
 		case "card":
-			// load a deck
+			// load the deck
 			deck, err := deckSource.LoadDeck(deckName)
 			if err != nil {
 				return fmt.Errorf("failed to load deck %s: %s", deckName, err)
 			}
+
 			// create the card
 			card, err := getCardViaEditor()
 			if err != nil {
@@ -70,9 +77,8 @@ var createCmd = &cobra.Command{
 			}
 
 		case "deck":
-			deckName := args[1]
-			deckPath := filepath.Join("decks", deckName)
-			err := os.Mkdir(deckPath, 0644)
+			// create the deck
+			_, err := deckSource.CreateDeck(deckName)
 			if err != nil {
 				return fmt.Errorf("failed to create deck %s: %s", deckName, err)
 			}
