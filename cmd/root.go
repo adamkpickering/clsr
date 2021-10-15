@@ -36,7 +36,8 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "clsr",
 	Short: "Learn things efficiently on the CLI using spaced repetition",
-	Long: `clsr is a CLI tool that allows you to manage and study decks
+	Long: `
+clsr is a CLI tool that allows you to manage and study decks
 of virtual flash cards. It takes care of scheduling so that you do not
 review them more often than necessary. Similar to Anki and other
 spaced repetition applications, except cards are always stored in
@@ -62,10 +63,6 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.clsr.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 // initConfig reads in config file and ENV variables if set.
