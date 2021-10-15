@@ -23,6 +23,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -30,12 +31,17 @@ import (
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize a folder to be a clsr repository",
-	Long: `Initialize a directory to be a clsr repository.
-Involves creating any data and/or configuration files that
-are required to make clsr work.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("init called")
+	Short: "initialize a folder to be a clsr repository",
+	Long: `
+Initializes a directory to be a clsr repository. Creates any
+data and/or configuration files that are required to make clsr work.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// create deck/ if it does not already exist
+		err := os.MkdirAll("decks", 0644)
+		if err != nil {
+			return fmt.Errorf("failed to create directory decks: %s", err)
+		}
+		return nil
 	},
 }
 
