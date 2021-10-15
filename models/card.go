@@ -28,7 +28,7 @@ var lastReviewRegex *regexp.Regexp
 var nextReviewRegex *regexp.Regexp
 var activeRegex *regexp.Regexp
 var dividerRegex *regexp.Regexp
-var cardTemplate *template.Template
+var CardTemplate *template.Template
 
 //go:embed card.txt.tmpl
 var cardTemplateText string
@@ -39,7 +39,7 @@ func init() {
 	nextReviewRegex = regexp.MustCompile(`^NextReview *=`)
 	activeRegex = regexp.MustCompile(`^Active *=`)
 	dividerRegex = regexp.MustCompile(`^---`)
-	cardTemplate = template.Must(template.New("card").Parse(cardTemplateText))
+	CardTemplate = template.Must(template.New("card").Parse(cardTemplateText))
 }
 
 type Card struct {
@@ -92,14 +92,14 @@ func parseCardFromFile(path string) (Card, error) {
 	}
 
 	// parse the card and return
-	card, err := parseCardFromString(string(data), id)
+	card, err := ParseCardFromString(string(data), id)
 	if err != nil {
 		return Card{}, fmt.Errorf("failed to parse card file: %s", err)
 	}
 	return card, nil
 }
 
-func parseCardFromString(data string, id string) (Card, error) {
+func ParseCardFromString(data string, id string) (Card, error) {
 	card := Card{
 		ID: id,
 	}
@@ -171,7 +171,7 @@ func parseCardFromString(data string, id string) (Card, error) {
 	return card, nil
 }
 
-func (card Card) writeToDir(dir string) error {
+func (card Card) WriteToDir(dir string) error {
 	// process card into a map
 	outputCard := map[string]string{}
 	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
@@ -191,7 +191,7 @@ func (card Card) writeToDir(dir string) error {
 	defer fd.Close()
 
 	// fill template and write to file
-	err = cardTemplate.Execute(fd, outputCard)
+	err = CardTemplate.Execute(fd, outputCard)
 	if err != nil {
 		return fmt.Errorf("failed to fill card template: %s", err)
 	}
