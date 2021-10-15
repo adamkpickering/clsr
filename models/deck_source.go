@@ -27,7 +27,7 @@ func NewFlatFileDeckSource(baseDir string) (FlatFileDeckSource, error) {
 
 func (deckSource FlatFileDeckSource) CreateDeck(name string) (*Deck, error) {
 	deckPath := filepath.Join(deckSource.baseDir, name)
-	err := os.MkdirAll(deckPath, 0644)
+	err := os.MkdirAll(deckPath, 0755)
 	if err != nil {
 		return &Deck{}, fmt.Errorf("failed to create new deck: %s", err)
 	}

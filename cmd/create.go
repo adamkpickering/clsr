@@ -37,7 +37,7 @@ var createCmd = &cobra.Command{
 	Use:   "create <resource_type>",
 	Short: "Create a resource",
 	Long:  "\nAllows the user to create clsr resources.",
-	Args:  cobra.RangeArgs(1, 2),
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// check that the directory has been initialized
 		if _, err := os.Stat(deckDirectory); errors.Is(err, os.ErrNotExist) {
@@ -108,5 +108,5 @@ func init() {
 }
 
 func getCardViaEditor() (models.Card, error) {
-	return models.Card{}, nil
+	return models.NewCard("test question", "test answer"), nil
 }
