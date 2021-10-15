@@ -23,22 +23,70 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/adamkpickering/clsr/models"
+	"github.com/adamkpickering/clsr/views"
+	"github.com/gdamore/tcell/v2"
 	"github.com/spf13/cobra"
 )
 
 // studyCmd represents the study command
 var studyCmd = &cobra.Command{
 	Use:   "study",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Study cards that are due",
+	Long:  "Used to study any cards that need to be studied.",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// get a DeckSource
+		deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
+		if err != nil {
+			return fmt.Errorf("failed to get DeckSource: %s", err)
+		}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("study called")
+		// get a list of cards to study
+		deck, err := deckSource.LoadDeck(deckName)
+		if err != nil {
+			return fmt.Errorf("failed to load deck: %s", err)
+		}
+		now := time.Now().UTC()
+		cardsToStudy := []models.Card{}
+		for _, card := range deck.Cards {
+			if card.NextReview.Before(now) {
+				cardsToStudy = append(cardsToStudy, card)
+			}
+		}
+
+		// initialize tcell
+		screen, err := tcell.NewScreen()
+		if err != nil {
+			return fmt.Errorf("failed to instantiate Screen: %s", err)
+		}
+		if err := screen.Init(); err != nil {
+			return fmt.Errorf("failed to initialize Screen: %s", err)
+		}
+
+		for _, card := range cardsToStudy {
+			var viewState views.ViewState = views.NewQuestionViewState(&card)
+
+			// study the card
+			for {
+				screen.Show()
+				event := screen.PollEvent()
+				_, ok := event.(*tcell.EventResize)
+				if ok {
+					screen.Sync()
+				}
+				viewState = viewState.HandleEvent(event)
+				if viewState == nil {
+					screen.Fini()
+					return nil
+				}
+			}
+		}
+
+		// write the changes to the deck
+
+		return nil
 	},
 }
 
@@ -54,4 +102,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// studyCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	studyCmd.Flags().StringVarP(&deckName, "deck", "d", "", "the deck to study")
+	studyCmd.MarkFlagRequired("deck")
 }
