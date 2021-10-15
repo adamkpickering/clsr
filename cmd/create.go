@@ -25,6 +25,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/adamkpickering/clsr/models"
 	"github.com/spf13/cobra"
@@ -64,7 +67,7 @@ var createCmd = &cobra.Command{
 			// create the card
 			card, err := getCardViaEditor()
 			if err != nil {
-				return fmt.Errorf("failed to get build card: %s", err)
+				return fmt.Errorf("failed to get card: %s", err)
 			}
 
 			// add the card to the deck
@@ -107,6 +110,61 @@ func init() {
 	createCmd.MarkFlagRequired("deck")
 }
 
+// Execs into the user's editor to allow them to fill a new card out with the
+// question and answer they want. Returns the card.
 func getCardViaEditor() (models.Card, error) {
-	return models.NewCard("test question", "test answer"), nil
+	// create temporary directory
+	tempDir, err := os.MkdirTemp("", "clsr_")
+	if err != nil {
+		return models.Card{}, fmt.Errorf("failed to create tempdir: %s", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// get interim card file
+	cardPath, err := getInterimCardFile(tempDir)
+	if err != nil {
+		return models.Card{}, fmt.Errorf("failed to create interim card file: %s", err)
+	}
+
+	// call the user's editor to let them edit the card
+	cmd := exec.Command("vim", cardPath)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	err = cmd.Run()
+	if err != nil {
+		return models.Card{}, fmt.Errorf("editor command error: %s", err)
+	}
+
+	// read what the user wrote in the file
+	data, err := os.ReadFile(cardPath)
+	if err != nil {
+		return models.Card{}, fmt.Errorf("failed to read file: %s", err)
+	}
+	cardFilename := filepath.Base(cardPath)
+	cardID := strings.Split(cardFilename, ".")[0]
+	card, err := models.ParseCardFromString(string(data), cardID)
+	if err != nil {
+		return models.Card{}, fmt.Errorf("failed to parse card: %s", err)
+	}
+
+	return card, nil
+}
+
+// Returns the path to a file that is filled with a card template so that it
+// can be opened by the user, edited, and then read again to turn what
+// the user wrote into a valid Card object. Should be removed once you are
+// finished with it.
+func getInterimCardFile(baseDir string) (string, error) {
+	// get an interim card
+	question := "Write the question here."
+	answer := "Write the answer here."
+	card := models.NewCard(question, answer)
+
+	// write to temporary file
+	err := card.WriteToDir(baseDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to create file: %s", err)
+	}
+
+	return filepath.Join(baseDir, fmt.Sprintf("%s.txt", card.ID)), nil
 }
