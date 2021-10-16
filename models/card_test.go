@@ -73,7 +73,7 @@ func TestCardWriteRead(t *testing.T) {
 	tempdir := t.TempDir()
 	oldCard := NewCard("fake question", "fake answer")
 	filename := fmt.Sprintf("%s.txt", oldCard.ID)
-	err := oldCard.writeToDir(tempdir)
+	err := oldCard.WriteToDir(tempdir)
 	if err != nil {
 		t.Errorf("failed to write card to file: %s", err)
 	}

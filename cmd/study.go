@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -61,25 +62,19 @@ var studyCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to instantiate Screen: %s", err)
 		}
+		defer screen.Fini()
 		if err := screen.Init(); err != nil {
 			return fmt.Errorf("failed to initialize Screen: %s", err)
 		}
 
+		// study cards
 		for _, card := range cardsToStudy {
-			var viewState views.ViewState = views.NewQuestionViewState(&card)
-
-			// study the card
+			var viewState views.ViewState = views.NewViewState(&card)
 			for {
-				screen.Show()
+				viewState.Draw()
 				event := screen.PollEvent()
-				_, ok := event.(*tcell.EventResize)
-				if ok {
-					screen.Sync()
-				}
-				viewState = viewState.HandleEvent(event)
-				if viewState == nil {
-					screen.Fini()
-					return nil
+				if viewState.HandleEvent(event) {
+					break
 				}
 			}
 		}
@@ -104,4 +99,89 @@ func init() {
 	// studyCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	studyCmd.Flags().StringVarP(&deckName, "deck", "d", "", "the deck to study")
 	studyCmd.MarkFlagRequired("deck")
+}
+
+var ErrExit error = errors.New("exit study session")
+
+type studyState int
+
+const (
+	questionState studyState = iota
+	questionAndAnswerState
+)
+
+type StudySession struct {
+	screen tcell.Screen
+	cards  []*models.Card
+}
+
+func (ss StudySession) Run() error {
+	for _, card := range ss.cards {
+		err := ss.studyCard(card)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (ss StudySession) studyCard(card *models.Card) error {
+	state := questionState
+	ss.renderQuestionOnly()
+	for {
+		// render screen
+		switch state {
+		case questionState:
+			ss.renderQuestionOnly()
+		case questionAndAnswerState:
+			ss.renderQuestionAndAnswer()
+		}
+
+		// poll for event and act on it
+		eventInterface := ss.screen.PollEvent()
+		switch event := eventInterface.(type) {
+		case *tcell.EventResize:
+			ss.screen.Sync()
+		case *tcell.EventKey:
+			key := event.Key()
+			if key == tcell.KeyEscape || key == tcell.KeyCtrlC {
+				return ErrExit
+			}
+			keyRune := event.Rune()
+			if state == questionState && (key == int16(' ') || key == tcell.KeyEnter) {
+				state = questionAndAnswerState
+			} else if state == questionAndAnswerState {
+				multiplier, err := getMultiplierFromRune(key)
+				if err == nil {
+					err := card.SetNextReview(multiplier)
+					if err != nil {
+						return fmt.Errorf("failed to set next review for card %s: %s", card.ID, err)
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (ss StudySession) renderQuestionOnly(card *models.Card) {
+	fmt.Println("renderQuestionOnly")
+}
+
+func (ss StudySession) renderQuestionAndAnswer(card *models.Card) {
+	fmt.Println("renderQuestionAndAnswer")
+}
+
+func getMultiplierFromRune(key rune) (float32, error) {
+	valueMap := map[rune]float32{
+		'1': 0.0,
+		'2': 1.0,
+		'3': 1.5,
+		'4': 2.0,
+	}
+	multiplier, ok := valueMap[key]
+	if ok {
+		return multiplier, nil
+	}
+	return 0.0, fmt.Errorf("Invalid key \"%s\"", key)
 }
