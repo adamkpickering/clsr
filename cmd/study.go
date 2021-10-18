@@ -73,7 +73,7 @@ var studyCmd = &cobra.Command{
 			cards:  cardsToStudy,
 		}
 		err = ss.Run()
-		if err != nil {
+		if err != nil && err != ErrExit {
 			return fmt.Errorf("problem while studying cards: %s", err)
 		}
 
@@ -129,12 +129,14 @@ func (ss StudySession) studyCard(card *models.Card) error {
 	state := questionState
 	for {
 		// render screen
+		ss.screen.Clear()
 		switch state {
 		case questionState:
 			ss.renderQuestionOnly(card)
 		case questionAndAnswerState:
 			ss.renderQuestionAndAnswer(card)
 		}
+		ss.screen.Show()
 
 		// poll for event and act on it
 		eventInterface := ss.screen.PollEvent()
