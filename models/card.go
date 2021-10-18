@@ -199,6 +199,19 @@ func (card Card) WriteToDir(dir string) error {
 	return nil
 }
 
+func (card Card) GetCurrentReviewInterval() time.Duration {
+	rawDifference := card.NextReview.Sub(card.LastReview)
+	difference := rawDifference.Round(24 * time.Hour)
+	return difference
+}
+
+func (card Card) GetMultipliedReviewInterval(multiplier float64) time.Duration {
+	currentDifference := card.GetCurrentReviewInterval()
+	rawNewDifference := float64(currentDifference) * multiplier
+	newDifference := time.Duration(int64(rawNewDifference)).Round(24 * time.Hour)
+	return newDifference
+}
+
 func (card Card) SetNextReview(multiplier float64) {
 	// check condition where card has not yet been studied
 	// This may need tweaking to allow another review in ~3 hours if
@@ -209,13 +222,8 @@ func (card Card) SetNextReview(multiplier float64) {
 		card.NextReview = time.Now().Add(24 * time.Hour)
 	}
 
-	// get difference (in days) between last review and next review
-	rawDifference := card.NextReview.Sub(card.LastReview)
-	difference := rawDifference.Round(24 * time.Hour)
-
-	// multiply that difference by the multiplier and round to nearest day
-	rawNewDifference := float64(difference) * multiplier
-	newDifference := time.Duration(int64(rawNewDifference)).Round(24 * time.Hour)
+	// get the next interval between reviews
+	newDifference := card.GetMultipliedReviewInterval(multiplier)
 
 	// set new last review and new next review
 	card.LastReview = time.Now().Truncate(24 * time.Hour)
