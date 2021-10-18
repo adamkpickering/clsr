@@ -112,18 +112,18 @@ func init() {
 
 // Execs into the user's editor to allow them to fill a new card out with the
 // question and answer they want. Returns the card.
-func getCardViaEditor() (models.Card, error) {
+func getCardViaEditor() (*models.Card, error) {
 	// create temporary directory
 	tempDir, err := os.MkdirTemp("", "clsr_")
 	if err != nil {
-		return models.Card{}, fmt.Errorf("failed to create tempdir: %s", err)
+		return &models.Card{}, fmt.Errorf("failed to create tempdir: %s", err)
 	}
 	defer os.RemoveAll(tempDir)
 
 	// get interim card file
 	cardPath, err := getInterimCardFile(tempDir)
 	if err != nil {
-		return models.Card{}, fmt.Errorf("failed to create interim card file: %s", err)
+		return &models.Card{}, fmt.Errorf("failed to create interim card file: %s", err)
 	}
 
 	// call the user's editor to let them edit the card
@@ -132,19 +132,19 @@ func getCardViaEditor() (models.Card, error) {
 	cmd.Stdout = os.Stdout
 	err = cmd.Run()
 	if err != nil {
-		return models.Card{}, fmt.Errorf("editor command error: %s", err)
+		return &models.Card{}, fmt.Errorf("editor command error: %s", err)
 	}
 
 	// read what the user wrote in the file
 	data, err := os.ReadFile(cardPath)
 	if err != nil {
-		return models.Card{}, fmt.Errorf("failed to read file: %s", err)
+		return &models.Card{}, fmt.Errorf("failed to read file: %s", err)
 	}
 	cardFilename := filepath.Base(cardPath)
 	cardID := strings.Split(cardFilename, ".")[0]
 	card, err := models.ParseCardFromString(string(data), cardID)
 	if err != nil {
-		return models.Card{}, fmt.Errorf("failed to parse card: %s", err)
+		return &models.Card{}, fmt.Errorf("failed to parse card: %s", err)
 	}
 
 	return card, nil

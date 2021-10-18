@@ -21,7 +21,7 @@ this is the answer
 
 if you got it
 good job`
-	inputCard := Card{
+	inputCard := &Card{
 		ID:         id,
 		Version:    0,
 		LastReview: time.Date(2021, 06, 12, 0, 0, 0, 0, time.UTC),
@@ -42,7 +42,7 @@ Active = %t
 ---
 %s
 `, inputCard.Version, inputCard.LastReview.Format(time.RFC3339), inputCard.NextReview.Format(time.RFC3339), inputCard.Active, inputCard.Question, inputCard.Answer)
-	parsedCard, err := parseCardFromString(data, id)
+	parsedCard, err := ParseCardFromString(data, id)
 	if err != nil {
 		t.Errorf("failed to parse card from string: %s", err)
 	}
@@ -73,7 +73,7 @@ func TestCardWriteRead(t *testing.T) {
 	tempdir := t.TempDir()
 	oldCard := NewCard("fake question", "fake answer")
 	filename := fmt.Sprintf("%s.txt", oldCard.ID)
-	err := oldCard.writeToDir(tempdir)
+	err := oldCard.WriteToDir(tempdir)
 	if err != nil {
 		t.Errorf("failed to write card to file: %s", err)
 	}
@@ -81,7 +81,7 @@ func TestCardWriteRead(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to parse card from file: %s", err)
 	}
-	if newCard != oldCard {
+	if *newCard != *oldCard {
 		t.Error("new and old cards do not match")
 	}
 	fmt.Printf("old card: %#v\n", oldCard)
