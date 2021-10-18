@@ -63,13 +63,13 @@ func randomString(n int) string {
 	return string(b)
 }
 
-func NewCard(question string, answer string) Card {
+func NewCard(question string, answer string) *Card {
 	// generate ID
 	rand.Seed(time.Now().UnixNano())
 	id := randomString(10)
 
 	// build card
-	return Card{
+	return &Card{
 		ID:         id,
 		Version:    0,
 		LastReview: time.Time{},
@@ -80,7 +80,7 @@ func NewCard(question string, answer string) Card {
 	}
 }
 
-func parseCardFromFile(path string) (Card, error) {
+func parseCardFromFile(path string) (*Card, error) {
 	// get id out of file name
 	filename := filepath.Base(path)
 	id := strings.Split(filename, ".")[0]
@@ -88,19 +88,19 @@ func parseCardFromFile(path string) (Card, error) {
 	// read the file
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return Card{}, fmt.Errorf("failed to read card file: %s", err)
+		return &Card{}, fmt.Errorf("failed to read card file: %s", err)
 	}
 
 	// parse the card and return
 	card, err := ParseCardFromString(string(data), id)
 	if err != nil {
-		return Card{}, fmt.Errorf("failed to parse card file: %s", err)
+		return &Card{}, fmt.Errorf("failed to parse card file: %s", err)
 	}
 	return card, nil
 }
 
-func ParseCardFromString(data string, id string) (Card, error) {
-	card := Card{
+func ParseCardFromString(data string, id string) (*Card, error) {
+	card := &Card{
 		ID: id,
 	}
 
@@ -118,7 +118,7 @@ func ParseCardFromString(data string, id string) (Card, error) {
 				trimmed_version := strings.TrimSpace(raw_version)
 				version, err := strconv.ParseInt(trimmed_version, 10, strconv.IntSize)
 				if err != nil {
-					return Card{}, fmt.Errorf("failed to parse Version: %s", err)
+					return &Card{}, fmt.Errorf("failed to parse Version: %s", err)
 				}
 				card.Version = int(version)
 
@@ -127,7 +127,7 @@ func ParseCardFromString(data string, id string) (Card, error) {
 				trimmed_value := strings.TrimSpace(raw_value)
 				value, err := time.Parse(time.RFC3339, trimmed_value)
 				if err != nil {
-					return Card{}, fmt.Errorf("failed to parse LastReview: %s", err)
+					return &Card{}, fmt.Errorf("failed to parse LastReview: %s", err)
 				}
 				card.LastReview = value
 
@@ -136,7 +136,7 @@ func ParseCardFromString(data string, id string) (Card, error) {
 				trimmed_value := strings.TrimSpace(raw_value)
 				value, err := time.Parse(time.RFC3339, trimmed_value)
 				if err != nil {
-					return Card{}, fmt.Errorf("failed to parse NextReview: %s", err)
+					return &Card{}, fmt.Errorf("failed to parse NextReview: %s", err)
 				}
 				card.NextReview = value
 
@@ -145,7 +145,7 @@ func ParseCardFromString(data string, id string) (Card, error) {
 				trimmed_value := strings.TrimSpace(raw_value)
 				value, err := strconv.ParseBool(trimmed_value)
 				if err != nil {
-					return Card{}, fmt.Errorf("failed to parse Active: %s", err)
+					return &Card{}, fmt.Errorf("failed to parse Active: %s", err)
 				}
 				card.Active = value
 
@@ -171,7 +171,7 @@ func ParseCardFromString(data string, id string) (Card, error) {
 	return card, nil
 }
 
-func (card Card) WriteToDir(dir string) error {
+func (card *Card) WriteToDir(dir string) error {
 	// process card into a map
 	outputCard := map[string]string{}
 	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
@@ -199,20 +199,20 @@ func (card Card) WriteToDir(dir string) error {
 	return nil
 }
 
-func (card Card) GetCurrentReviewInterval() time.Duration {
+func (card *Card) GetCurrentReviewInterval() time.Duration {
 	rawDifference := card.NextReview.Sub(card.LastReview)
 	difference := rawDifference.Round(24 * time.Hour)
 	return difference
 }
 
-func (card Card) GetMultipliedReviewInterval(multiplier float64) time.Duration {
+func (card *Card) GetMultipliedReviewInterval(multiplier float64) time.Duration {
 	currentDifference := card.GetCurrentReviewInterval()
 	rawNewDifference := float64(currentDifference) * multiplier
 	newDifference := time.Duration(int64(rawNewDifference)).Round(24 * time.Hour)
 	return newDifference
 }
 
-func (card Card) SetNextReview(multiplier float64) {
+func (card *Card) SetNextReview(multiplier float64) {
 	// check condition where card has not yet been studied
 	// This may need tweaking to allow another review in ~3 hours if
 	// the review failed, because currently we are treating LastReview

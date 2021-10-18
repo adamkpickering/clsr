@@ -10,7 +10,7 @@ import (
 // as a directory containing files that represent its Cards.
 type Deck struct {
 	Name  string
-	Cards []Card
+	Cards []*Card
 }
 
 func LoadDeck(path string) (*Deck, error) {
@@ -50,6 +50,6 @@ func NewDeck(path string) (*Deck, error) {
 	return deck, nil
 }
 
-func (d *Deck) AddCard(card Card) {
+func (d *Deck) AddCard(card *Card) {
 	d.Cards = append(d.Cards, card)
 }

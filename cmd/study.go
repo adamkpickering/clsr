@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/adamkpickering/clsr/models"
-	"github.com/adamkpickering/clsr/views"
 	"github.com/gdamore/tcell/v2"
 	"github.com/spf13/cobra"
 )
@@ -50,7 +49,7 @@ var studyCmd = &cobra.Command{
 			return fmt.Errorf("failed to load deck: %s", err)
 		}
 		now := time.Now().UTC()
-		cardsToStudy := []models.Card{}
+		cardsToStudy := []*models.Card{}
 		for _, card := range deck.Cards {
 			if card.NextReview.Before(now) {
 				cardsToStudy = append(cardsToStudy, card)
@@ -68,15 +67,13 @@ var studyCmd = &cobra.Command{
 		}
 
 		// study cards
-		for _, card := range cardsToStudy {
-			var viewState views.ViewState = views.NewViewState(&card)
-			for {
-				viewState.Draw()
-				event := screen.PollEvent()
-				if viewState.HandleEvent(event) {
-					break
-				}
-			}
+		ss := &StudySession{
+			screen: screen,
+			cards:  cardsToStudy,
+		}
+		err = ss.Run()
+		if err != nil {
+			return fmt.Errorf("problem while studying cards: %s", err)
 		}
 
 		// write the changes to the deck
@@ -131,9 +128,9 @@ func (ss StudySession) studyCard(card *models.Card) error {
 		// render screen
 		switch state {
 		case questionState:
-			ss.renderQuestionOnly()
+			ss.renderQuestionOnly(card)
 		case questionAndAnswerState:
-			ss.renderQuestionAndAnswer()
+			ss.renderQuestionAndAnswer(card)
 		}
 
 		// poll for event and act on it

@@ -128,7 +128,7 @@ func (deckSource FlatFileDeckSource) SyncDeck(deck *Deck) error {
 	return nil
 }
 
-func getCardFilename(card Card) string {
+func getCardFilename(card *Card) string {
 	return fmt.Sprintf("%s.txt", card.ID)
 }
 
