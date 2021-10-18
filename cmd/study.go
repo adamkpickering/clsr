@@ -172,9 +172,14 @@ func (ss StudySession) studyCard(card *models.Card) error {
 	}
 }
 
+func (ss StudySession) processString(rawString string) []string {
+	trimmedString := strings.TrimSpace(rawString)
+	stringLines := strings.Split(trimmedString, "\n")
+	return stringLines
+}
+
 func (ss StudySession) renderQuestionOnly(card *models.Card) {
-	question := "this is a string\nthis is a string\nthis is a string"
-	lines := strings.Split(question, "\n")
+	lines := ss.processString(card.Question)
 	for lineIndex, line := range lines {
 		for i, runeValue := range line {
 			ss.screen.SetContent(i, lineIndex, runeValue, nil, StyleDefault)
@@ -183,7 +188,24 @@ func (ss StudySession) renderQuestionOnly(card *models.Card) {
 }
 
 func (ss StudySession) renderQuestionAndAnswer(card *models.Card) {
-	fmt.Println("renderQuestionAndAnswer")
+	// build lines var, which represents lines to print to screen
+	lines := []string{}
+	for _, questionLine := range ss.processString(card.Question) {
+		lines = append(lines, questionLine)
+	}
+	lines = append(lines, "\n")
+	lines = append(lines, "------")
+	lines = append(lines, "\n")
+	for _, answerLine := range ss.processString(card.Answer) {
+		lines = append(lines, answerLine)
+	}
+
+	// print to screen
+	for lineIndex, line := range lines {
+		for i, runeValue := range line {
+			ss.screen.SetContent(i, lineIndex, runeValue, nil, StyleDefault)
+		}
+	}
 }
 
 func getMultiplierFromRune(key rune) (float64, error) {
