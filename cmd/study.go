@@ -164,10 +164,7 @@ func (ss StudySession) studyCard(card *models.Card) error {
 					if err != nil {
 						return fmt.Errorf("multiplier fetch failed: %s", err)
 					}
-					err := card.SetNextReview(multiplier)
-					if err != nil {
-						return fmt.Errorf("failed to set next review for card %s: %s", card.ID, err)
-					}
+					card.SetNextReview(multiplier)
 				}
 			}
 		}
@@ -184,8 +181,8 @@ func (ss StudySession) renderQuestionAndAnswer(card *models.Card) {
 	fmt.Println("renderQuestionAndAnswer")
 }
 
-func getMultiplierFromRune(key rune) (float32, error) {
-	valueMap := map[rune]float32{
+func getMultiplierFromRune(key rune) (float64, error) {
+	valueMap := map[rune]float64{
 		'1': 0.0,
 		'2': 1.0,
 		'3': 1.5,

@@ -198,3 +198,26 @@ func (card Card) WriteToDir(dir string) error {
 
 	return nil
 }
+
+func (card Card) SetNextReview(multiplier float64) {
+	// check condition where card has not yet been studied
+	// This may need tweaking to allow another review in ~3 hours if
+	// the review failed, because currently we are treating LastReview
+	// and NextReview as dates without times.
+	if card.LastReview.IsZero() {
+		card.LastReview = time.Now().Truncate(24 * time.Hour)
+		card.NextReview = time.Now().Add(24 * time.Hour)
+	}
+
+	// get difference (in days) between last review and next review
+	rawDifference := card.NextReview.Sub(card.LastReview)
+	difference := rawDifference.Round(24 * time.Hour)
+
+	// multiply that difference by the multiplier and round to nearest day
+	rawNewDifference := float64(difference) * multiplier
+	newDifference := time.Duration(int64(rawNewDifference)).Round(24 * time.Hour)
+
+	// set new last review and new next review
+	card.LastReview = time.Now().Truncate(24 * time.Hour)
+	card.NextReview = card.LastReview.Add(newDifference).Round(24 * time.Hour)
+}
