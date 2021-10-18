@@ -24,6 +24,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/adamkpickering/clsr/models"
@@ -100,6 +101,8 @@ func init() {
 
 var ErrExit error = errors.New("exit study session")
 
+var StyleDefault tcell.Style
+
 type studyState int
 
 const (
@@ -170,7 +173,13 @@ func (ss StudySession) studyCard(card *models.Card) error {
 }
 
 func (ss StudySession) renderQuestionOnly(card *models.Card) {
-	fmt.Println("renderQuestionOnly")
+	question := "this is a string\nthis is a string\nthis is a string"
+	lines := strings.Split(question, "\n")
+	for lineIndex, line := range lines {
+		for i, runeValue := range line {
+			ss.screen.SetContent(i, lineIndex, runeValue, nil, StyleDefault)
+		}
+	}
 }
 
 func (ss StudySession) renderQuestionAndAnswer(card *models.Card) {
