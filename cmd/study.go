@@ -35,7 +35,7 @@ import (
 var studyCmd = &cobra.Command{
 	Use:   "study",
 	Short: "Study cards that are due",
-	Long:  "Used to study any cards that need to be studied.",
+	Long:  "\nUsed to study any cards that need to be studied.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// get a DeckSource
 		deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
