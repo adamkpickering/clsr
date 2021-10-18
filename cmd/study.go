@@ -78,6 +78,10 @@ var studyCmd = &cobra.Command{
 		}
 
 		// write the changes to the deck
+		err = deckSource.SyncDeck(deck)
+		if err != nil {
+			return fmt.Errorf("failed to sync studied deck \"%s\": %s", deck.Name, err)
+		}
 
 		return nil
 	},
