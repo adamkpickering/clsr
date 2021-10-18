@@ -127,7 +127,6 @@ func (ss StudySession) Run() error {
 
 func (ss StudySession) studyCard(card *models.Card) error {
 	state := questionState
-	ss.renderQuestionOnly()
 	for {
 		// render screen
 		switch state {
@@ -144,15 +143,27 @@ func (ss StudySession) studyCard(card *models.Card) error {
 			ss.screen.Sync()
 		case *tcell.EventKey:
 			key := event.Key()
+
+			// premature exit conditions
 			if key == tcell.KeyEscape || key == tcell.KeyCtrlC {
 				return ErrExit
 			}
-			keyRune := event.Rune()
-			if state == questionState && (key == int16(' ') || key == tcell.KeyEnter) {
-				state = questionAndAnswerState
-			} else if state == questionAndAnswerState {
-				multiplier, err := getMultiplierFromRune(key)
-				if err == nil {
+
+			// handle different keys depending on different states
+			switch state {
+			case questionState:
+				if key == tcell.KeyRune {
+					if keyRune := event.Rune(); key == tcell.KeyEnter || keyRune == ' ' {
+						state = questionAndAnswerState
+					}
+				}
+			case questionAndAnswerState:
+				if key == tcell.KeyRune {
+					keyRune := event.Rune()
+					multiplier, err := getMultiplierFromRune(keyRune)
+					if err != nil {
+						return fmt.Errorf("multiplier fetch failed: %s", err)
+					}
 					err := card.SetNextReview(multiplier)
 					if err != nil {
 						return fmt.Errorf("failed to set next review for card %s: %s", card.ID, err)
@@ -161,6 +172,7 @@ func (ss StudySession) studyCard(card *models.Card) error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -183,5 +195,5 @@ func getMultiplierFromRune(key rune) (float32, error) {
 	if ok {
 		return multiplier, nil
 	}
-	return 0.0, fmt.Errorf("Invalid key \"%s\"", key)
+	return 0.0, fmt.Errorf("invalid key \"%s\"", key)
 }
