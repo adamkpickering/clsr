@@ -141,7 +141,7 @@ func (ss StudySession) studyCard(card *models.Card) error {
 		case *tcell.EventKey:
 			key := event.Key()
 
-			// premature exit conditions
+			// allow user to exit cleanly and prematurely
 			if key == tcell.KeyEscape || key == tcell.KeyCtrlC {
 				return ErrExit
 			}
@@ -159,15 +159,14 @@ func (ss StudySession) studyCard(card *models.Card) error {
 					keyRune := event.Rune()
 					multiplier, err := getMultiplierFromRune(keyRune)
 					if err != nil {
-						return fmt.Errorf("multiplier fetch failed: %s", err)
+						continue
 					}
 					card.SetNextReview(multiplier)
+					return nil
 				}
 			}
 		}
 	}
-
-	return nil
 }
 
 func (ss StudySession) renderQuestionOnly(card *models.Card) {
@@ -189,5 +188,5 @@ func getMultiplierFromRune(key rune) (float64, error) {
 	if ok {
 		return multiplier, nil
 	}
-	return 0.0, fmt.Errorf("invalid key \"%s\"", key)
+	return 0.0, fmt.Errorf("invalid key \"%c\"", key)
 }
