@@ -94,6 +94,11 @@ func TestGetCurrentReviewInterval(t *testing.T) {
 			NextReview: time.Date(2021, 11, 6, 0, 0, 0, 0, time.Local),
 			Result:     -2,
 		},
+		{
+			LastReview: time.Time{},
+			NextReview: time.Date(2021, 11, 6, 0, 0, 0, 0, time.Local),
+			Result:     1,
+		},
 	}
 	for _, test := range testCases {
 		card := NewCard("fake question", "fake answer")
@@ -188,32 +193,25 @@ func TestGetMultipliedReviewInterval(t *testing.T) {
 	}
 }
 
-//func TestSetNextReview(t *testing.T) {
-//	type testCase struct {
-//		Multiplier float64
-//		Result     int
-//		CardFunc   func() *Card
-//	}
-//	generateCard := func() *Card {
-//		card := NewCard("fake question", "fake answer")
-//		// remove the zero value from LastReview
-//		card.SetNextReview(1.0)
-//		return card
-//	}
-//	testCases := []testCase{
-//		{Multiplier: 1.0, Result: 1, CardFunc: generateCard},
-//		{Multiplier: 0.0, Result: 0, CardFunc: generateCard},
-//		{Multiplier: 4.0, Result: 4, CardFunc: generateCard},
-//		{Multiplier: 4.5, Result: 5, CardFunc: generateCard},
-//		{Multiplier: 4.3, Result: 4, CardFunc: generateCard},
-//		{Multiplier: -3.2, Result: 0, CardFunc: generateCard},
-//	}
-//	for _, myCase := range testCases {
-//		card := myCase.CardFunc()
-//		card.SetNextReview(myCase.Multiplier)
-//		interval := card.GetCurrentReviewInterval()
-//		if interval != myCase.Result {
-//			t.Errorf("got incorrect review interval %d (expected %d)", interval, myCase.Result)
-//		}
-//	}
-//}
+func TestSetNextReview(t *testing.T) {
+	card := NewCard("fake question", "fake answer")
+	if !card.LastReview.IsZero() {
+		t.Error("card.LastReview is not zero valued")
+	}
+	card.SetNextReview(1.0)
+	if interval := card.GetCurrentReviewInterval(); interval != 1 {
+		t.Errorf("got interval %d (expected 1)", interval)
+	}
+	card.SetNextReview(2.0)
+	if interval := card.GetCurrentReviewInterval(); interval != 2 {
+		t.Errorf("got interval %d (expected 2)", interval)
+	}
+	card.SetNextReview(4.0)
+	if interval := card.GetCurrentReviewInterval(); interval != 8 {
+		t.Errorf("got interval %d (expected 8)", interval)
+	}
+	card.SetNextReview(4.0)
+	if interval := card.GetCurrentReviewInterval(); interval != 32 {
+		t.Errorf("got interval %d (expected 32)", interval)
+	}
+}

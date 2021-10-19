@@ -215,6 +215,12 @@ func (card *Card) WriteToDir(dir string) error {
 // between the date the card was last reviewed and the date the card
 // should be reviewed next. Review interval is in days.
 func (card *Card) GetCurrentReviewInterval() int {
+	// if card has not been studied yet, return 1
+	if card.LastReview.IsZero() {
+		return 1
+	}
+
+	// determine interval if card has been studied
 	rawDifference := card.NextReview.Sub(card.LastReview)
 	difference := rawDifference.Round(24 * time.Hour)
 	days := int(difference / (24 * time.Hour))
@@ -235,13 +241,6 @@ func (card *Card) GetMultipliedReviewInterval(multiplier float64) int {
 // to review dates such that they reflect the new interval, with the last
 // review set to today.
 func (card *Card) SetNextReview(multiplier float64) {
-	// check condition where card has not yet been studied
-	if card.LastReview.IsZero() {
-		card.LastReview = time.Now().Truncate(24 * time.Hour)
-		card.NextReview = card.LastReview.AddDate(0, 0, 1)
-		return
-	}
-
 	// get the next interval between reviews
 	newInterval := card.GetMultipliedReviewInterval(multiplier)
 
