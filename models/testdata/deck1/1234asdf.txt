@@ -1,6 +1,6 @@
 Version = 0
-LastReview = 2021-06-12T06:06:03Z
-NextReview = 2021-06-13T06:06:03Z
+LastReview = 2021-06-12
+NextReview = 2021-06-13
 Active = true
 ---
 What should I ask?

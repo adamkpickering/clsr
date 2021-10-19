@@ -24,8 +24,8 @@ good job`
 	inputCard := &Card{
 		ID:         id,
 		Version:    0,
-		LastReview: time.Date(2021, 06, 12, 0, 0, 0, 0, time.UTC),
-		NextReview: time.Date(2021, 06, 13, 0, 0, 0, 0, time.UTC),
+		LastReview: time.Date(2021, 06, 12, 0, 0, 0, 0, time.Local),
+		NextReview: time.Date(2021, 06, 13, 0, 0, 0, 0, time.Local),
 		Active:     true,
 		Question:   question,
 		Answer:     answer,
@@ -41,31 +41,15 @@ Active = %t
 %s
 ---
 %s
-`, inputCard.Version, inputCard.LastReview.Format(time.RFC3339), inputCard.NextReview.Format(time.RFC3339), inputCard.Active, inputCard.Question, inputCard.Answer)
+`, inputCard.Version, inputCard.LastReview.Format(dateLayout), inputCard.NextReview.Format(dateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
 	parsedCard, err := ParseCardFromString(data, id)
 	if err != nil {
 		t.Errorf("failed to parse card from string: %s", err)
 	}
-	if parsedCard.ID != inputCard.ID {
-		t.Error("mismatched ID")
-	}
-	if parsedCard.Version != inputCard.Version {
-		t.Error("mismatched Version")
-	}
-	if parsedCard.LastReview != inputCard.LastReview {
-		t.Error("mismatched LastReview")
-	}
-	if parsedCard.NextReview != inputCard.NextReview {
-		t.Error("mismatched NextReview")
-	}
-	if parsedCard.Active != inputCard.Active {
-		t.Error("mismatched Active")
-	}
-	if parsedCard.Question != inputCard.Question {
-		t.Error("mismatched Question")
-	}
-	if parsedCard.Answer != inputCard.Answer {
-		t.Error("mismatched Answer")
+	if *inputCard != *parsedCard {
+		t.Error("inputCard does not match parsedCard")
+		t.Logf("inputCard: %#v\n", *inputCard)
+		t.Logf("parsedCard: %#v\n", *parsedCard)
 	}
 }
 
@@ -83,7 +67,7 @@ func TestCardWriteRead(t *testing.T) {
 	}
 	if *newCard != *oldCard {
 		t.Error("new and old cards do not match")
+		t.Logf("old card: %#v\n", *oldCard)
+		t.Logf("new card: %#v\n", *newCard)
 	}
-	fmt.Printf("old card: %#v\n", oldCard)
-	fmt.Printf("new card: %#v\n", newCard)
 }

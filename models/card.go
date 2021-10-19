@@ -72,11 +72,12 @@ func NewCard(question string, answer string) *Card {
 	id := randomString(10)
 
 	// build card
+	year, month, day := time.Now().Date()
 	return &Card{
 		ID:         id,
 		Version:    0,
 		LastReview: time.Time{},
-		NextReview: time.Now().Truncate(24 * time.Hour),
+		NextReview: time.Date(year, month, day, 0, 0, 0, 0, time.Local),
 		Question:   question,
 		Answer:     answer,
 		Active:     true,
@@ -117,36 +118,44 @@ func ParseCardFromString(data string, id string) (*Card, error) {
 
 		case state == header:
 			if versionRegex.MatchString(line) {
-				raw_version := strings.Split(line, "=")[1]
-				trimmed_version := strings.TrimSpace(raw_version)
-				version, err := strconv.ParseInt(trimmed_version, 10, strconv.IntSize)
+				rawVersion := strings.Split(line, "=")[1]
+				trimmedVersion := strings.TrimSpace(rawVersion)
+				version, err := strconv.ParseInt(trimmedVersion, 10, strconv.IntSize)
 				if err != nil {
 					return &Card{}, fmt.Errorf("failed to parse Version: %s", err)
 				}
 				card.Version = int(version)
 
 			} else if lastReviewRegex.MatchString(line) {
-				raw_value := strings.Split(line, "=")[1]
-				trimmed_value := strings.TrimSpace(raw_value)
-				value, err := time.Parse(dateLayout, trimmed_value)
+				rawValue := strings.Split(line, "=")[1]
+				trimmedValue := strings.TrimSpace(rawValue)
+				possibleZeroTime, err := time.Parse(dateLayout, trimmedValue)
 				if err != nil {
-					return &Card{}, fmt.Errorf("failed to parse LastReview: %s", err)
+					return &Card{}, fmt.Errorf("failed to parse LastReview as zero time: %s", err)
 				}
-				card.LastReview = value
+				if possibleZeroTime.IsZero() {
+					card.LastReview = possibleZeroTime
+				} else {
+					value, err := time.ParseInLocation(dateLayout, trimmedValue, time.Local)
+					if err != nil {
+						return &Card{}, fmt.Errorf("failed to parse LastReview: %s", err)
+					}
+					card.LastReview = value
+				}
 
 			} else if nextReviewRegex.MatchString(line) {
-				raw_value := strings.Split(line, "=")[1]
-				trimmed_value := strings.TrimSpace(raw_value)
-				value, err := time.Parse(dateLayout, trimmed_value)
+				rawValue := strings.Split(line, "=")[1]
+				trimmedValue := strings.TrimSpace(rawValue)
+				value, err := time.ParseInLocation(dateLayout, trimmedValue, time.Local)
 				if err != nil {
 					return &Card{}, fmt.Errorf("failed to parse NextReview: %s", err)
 				}
 				card.NextReview = value
 
 			} else if activeRegex.MatchString(line) {
-				raw_value := strings.Split(line, "=")[1]
-				trimmed_value := strings.TrimSpace(raw_value)
-				value, err := strconv.ParseBool(trimmed_value)
+				rawValue := strings.Split(line, "=")[1]
+				trimmedValue := strings.TrimSpace(rawValue)
+				value, err := strconv.ParseBool(trimmedValue)
 				if err != nil {
 					return &Card{}, fmt.Errorf("failed to parse Active: %s", err)
 				}
