@@ -31,7 +31,7 @@ import (
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "initialize a folder to be a clsr repository",
+	Short: "Initialize a folder to be a clsr repository",
 	Long: `
 Initializes a directory to be a clsr repository. Creates any
 data and/or configuration files that are required to make clsr work.`,
