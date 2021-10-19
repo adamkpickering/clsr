@@ -56,12 +56,12 @@ Active = %t
 func TestCardWriteRead(t *testing.T) {
 	tempdir := t.TempDir()
 	oldCard := NewCard("fake question", "fake answer")
-	filename := fmt.Sprintf("%s.txt", oldCard.ID)
-	err := oldCard.WriteToDir(tempdir)
+	cardPath := filepath.Join(tempdir, GetCardFilename(oldCard))
+	err := WriteCardToFile(cardPath, oldCard)
 	if err != nil {
 		t.Errorf("failed to write card to file: %s", err)
 	}
-	newCard, err := readCardFromFile(filepath.Join(tempdir, filename))
+	newCard, err := ReadCardFromFile(cardPath)
 	if err != nil {
 		t.Errorf("failed to parse card from file: %s", err)
 	}

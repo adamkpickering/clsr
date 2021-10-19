@@ -1,16 +1,12 @@
 package models
 
 import (
-	_ "embed"
 	"fmt"
 	"math"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 )
 
@@ -31,10 +27,6 @@ var lastReviewRegex *regexp.Regexp
 var nextReviewRegex *regexp.Regexp
 var activeRegex *regexp.Regexp
 var dividerRegex *regexp.Regexp
-var CardTemplate *template.Template
-
-//go:embed card.txt.tmpl
-var cardTemplateText string
 
 func init() {
 	versionRegex = regexp.MustCompile(`^Version *=`)
@@ -42,7 +34,6 @@ func init() {
 	nextReviewRegex = regexp.MustCompile(`^NextReview *=`)
 	activeRegex = regexp.MustCompile(`^Active *=`)
 	dividerRegex = regexp.MustCompile(`^---`)
-	CardTemplate = template.Must(template.New("card").Parse(cardTemplateText))
 }
 
 type Card struct {
@@ -162,34 +153,6 @@ func ParseCardFromString(data string, id string) (*Card, error) {
 	card.Answer = strings.Join(answer_lines, "\n")
 
 	return card, nil
-}
-
-func (card *Card) WriteToDir(dir string) error {
-	// process card into a map
-	outputCard := map[string]string{}
-	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
-	outputCard["LastReview"] = card.LastReview.Format(dateLayout)
-	outputCard["NextReview"] = card.NextReview.Format(dateLayout)
-	outputCard["Active"] = fmt.Sprintf("%t", card.Active)
-	outputCard["Question"] = card.Question
-	outputCard["Answer"] = card.Answer
-
-	// open/create file
-	filename := fmt.Sprintf("%s.txt", card.ID)
-	path := filepath.Join(dir, filename)
-	fd, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("failed to open card file for writing: %s", err)
-	}
-	defer fd.Close()
-
-	// fill template and write to file
-	err = CardTemplate.Execute(fd, outputCard)
-	if err != nil {
-		return fmt.Errorf("failed to fill card template: %s", err)
-	}
-
-	return nil
 }
 
 // Returns the current review interval, that is, the number of days
