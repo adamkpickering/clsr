@@ -3,6 +3,7 @@ package models
 import (
 	_ "embed"
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -22,6 +23,8 @@ const (
 )
 
 const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+const dateLayout = "2006-01-02"
 
 var versionRegex *regexp.Regexp
 var lastReviewRegex *regexp.Regexp
@@ -69,11 +72,12 @@ func NewCard(question string, answer string) *Card {
 	id := randomString(10)
 
 	// build card
+	year, month, day := time.Now().Date()
 	return &Card{
 		ID:         id,
 		Version:    0,
 		LastReview: time.Time{},
-		NextReview: time.Now().UTC().Round(time.Second),
+		NextReview: time.Date(year, month, day, 0, 0, 0, 0, time.Local),
 		Question:   question,
 		Answer:     answer,
 		Active:     true,
@@ -114,36 +118,44 @@ func ParseCardFromString(data string, id string) (*Card, error) {
 
 		case state == header:
 			if versionRegex.MatchString(line) {
-				raw_version := strings.Split(line, "=")[1]
-				trimmed_version := strings.TrimSpace(raw_version)
-				version, err := strconv.ParseInt(trimmed_version, 10, strconv.IntSize)
+				rawVersion := strings.Split(line, "=")[1]
+				trimmedVersion := strings.TrimSpace(rawVersion)
+				version, err := strconv.ParseInt(trimmedVersion, 10, strconv.IntSize)
 				if err != nil {
 					return &Card{}, fmt.Errorf("failed to parse Version: %s", err)
 				}
 				card.Version = int(version)
 
 			} else if lastReviewRegex.MatchString(line) {
-				raw_value := strings.Split(line, "=")[1]
-				trimmed_value := strings.TrimSpace(raw_value)
-				value, err := time.Parse(time.RFC3339, trimmed_value)
+				rawValue := strings.Split(line, "=")[1]
+				trimmedValue := strings.TrimSpace(rawValue)
+				possibleZeroTime, err := time.Parse(dateLayout, trimmedValue)
 				if err != nil {
-					return &Card{}, fmt.Errorf("failed to parse LastReview: %s", err)
+					return &Card{}, fmt.Errorf("failed to parse LastReview as zero time: %s", err)
 				}
-				card.LastReview = value
+				if possibleZeroTime.IsZero() {
+					card.LastReview = possibleZeroTime
+				} else {
+					value, err := time.ParseInLocation(dateLayout, trimmedValue, time.Local)
+					if err != nil {
+						return &Card{}, fmt.Errorf("failed to parse LastReview: %s", err)
+					}
+					card.LastReview = value
+				}
 
 			} else if nextReviewRegex.MatchString(line) {
-				raw_value := strings.Split(line, "=")[1]
-				trimmed_value := strings.TrimSpace(raw_value)
-				value, err := time.Parse(time.RFC3339, trimmed_value)
+				rawValue := strings.Split(line, "=")[1]
+				trimmedValue := strings.TrimSpace(rawValue)
+				value, err := time.ParseInLocation(dateLayout, trimmedValue, time.Local)
 				if err != nil {
 					return &Card{}, fmt.Errorf("failed to parse NextReview: %s", err)
 				}
 				card.NextReview = value
 
 			} else if activeRegex.MatchString(line) {
-				raw_value := strings.Split(line, "=")[1]
-				trimmed_value := strings.TrimSpace(raw_value)
-				value, err := strconv.ParseBool(trimmed_value)
+				rawValue := strings.Split(line, "=")[1]
+				trimmedValue := strings.TrimSpace(rawValue)
+				value, err := strconv.ParseBool(trimmedValue)
 				if err != nil {
 					return &Card{}, fmt.Errorf("failed to parse Active: %s", err)
 				}
@@ -175,8 +187,8 @@ func (card *Card) WriteToDir(dir string) error {
 	// process card into a map
 	outputCard := map[string]string{}
 	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
-	outputCard["LastReview"] = card.LastReview.Format(time.RFC3339)
-	outputCard["NextReview"] = card.NextReview.Format(time.RFC3339)
+	outputCard["LastReview"] = card.LastReview.Format(dateLayout)
+	outputCard["NextReview"] = card.NextReview.Format(dateLayout)
 	outputCard["Active"] = fmt.Sprintf("%t", card.Active)
 	outputCard["Question"] = card.Question
 	outputCard["Answer"] = card.Answer
@@ -199,35 +211,42 @@ func (card *Card) WriteToDir(dir string) error {
 	return nil
 }
 
-func (card *Card) GetCurrentReviewInterval() time.Duration {
-	rawDifference := card.NextReview.Sub(card.LastReview)
-	difference := rawDifference.Round(24 * time.Hour)
-	return difference
-}
-
-func (card *Card) GetMultipliedReviewInterval(multiplier float64) time.Duration {
-	currentDifference := card.GetCurrentReviewInterval()
-	rawNewDifference := float64(currentDifference) * multiplier
-	newDifference := time.Duration(int64(rawNewDifference)).Round(24 * time.Hour)
-	return newDifference
-}
-
-func (card *Card) SetNextReview(multiplier float64) {
-	// check condition where card has not yet been studied
-	// This may need tweaking to allow another review in ~3 hours if
-	// the review failed, because currently we are treating LastReview
-	// and NextReview as dates without times.
+// Returns the current review interval, that is, the number of days
+// between the date the card was last reviewed and the date the card
+// should be reviewed next. Review interval is in days.
+func (card *Card) GetCurrentReviewInterval() int {
+	// if card has not been studied yet, return 1
 	if card.LastReview.IsZero() {
-		card.LastReview = time.Now().Truncate(24 * time.Hour)
-		card.NextReview = time.Now().Add(24 * time.Hour)
+		return 1
 	}
 
+	// determine interval if card has been studied
+	rawDifference := card.NextReview.Sub(card.LastReview)
+	difference := rawDifference.Round(24 * time.Hour)
+	days := int(difference / (24 * time.Hour))
+	return days
+}
+
+// Given a multiplier that represents the effect on the review interval
+// following a card review, returns the number of days until that card
+// should be reviewed again.
+func (card *Card) GetMultipliedReviewInterval(multiplier float64) int {
+	currentInterval := card.GetCurrentReviewInterval()
+	newInterval := int(math.Round(float64(currentInterval) * multiplier))
+	return newInterval
+}
+
+// Given a multiplier that represents the effect on the review interval
+// following a card review, modifies the fields of the Card that pertain
+// to review dates such that they reflect the new interval, with the last
+// review set to today.
+func (card *Card) SetNextReview(multiplier float64) {
 	// get the next interval between reviews
-	newDifference := card.GetMultipliedReviewInterval(multiplier)
+	newInterval := card.GetMultipliedReviewInterval(multiplier)
 
 	// set new last review and new next review
 	card.LastReview = time.Now().Truncate(24 * time.Hour)
-	card.NextReview = card.LastReview.Add(newDifference).Round(24 * time.Hour)
+	card.NextReview = card.LastReview.AddDate(0, 0, newInterval)
 }
 
 func (card *Card) IsDue() bool {

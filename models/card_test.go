@@ -24,8 +24,8 @@ good job`
 	inputCard := &Card{
 		ID:         id,
 		Version:    0,
-		LastReview: time.Date(2021, 06, 12, 0, 0, 0, 0, time.UTC),
-		NextReview: time.Date(2021, 06, 13, 0, 0, 0, 0, time.UTC),
+		LastReview: time.Date(2021, 06, 12, 0, 0, 0, 0, time.Local),
+		NextReview: time.Date(2021, 06, 13, 0, 0, 0, 0, time.Local),
 		Active:     true,
 		Question:   question,
 		Answer:     answer,
@@ -41,31 +41,15 @@ Active = %t
 %s
 ---
 %s
-`, inputCard.Version, inputCard.LastReview.Format(time.RFC3339), inputCard.NextReview.Format(time.RFC3339), inputCard.Active, inputCard.Question, inputCard.Answer)
+`, inputCard.Version, inputCard.LastReview.Format(dateLayout), inputCard.NextReview.Format(dateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
 	parsedCard, err := ParseCardFromString(data, id)
 	if err != nil {
 		t.Errorf("failed to parse card from string: %s", err)
 	}
-	if parsedCard.ID != inputCard.ID {
-		t.Error("mismatched ID")
-	}
-	if parsedCard.Version != inputCard.Version {
-		t.Error("mismatched Version")
-	}
-	if parsedCard.LastReview != inputCard.LastReview {
-		t.Error("mismatched LastReview")
-	}
-	if parsedCard.NextReview != inputCard.NextReview {
-		t.Error("mismatched NextReview")
-	}
-	if parsedCard.Active != inputCard.Active {
-		t.Error("mismatched Active")
-	}
-	if parsedCard.Question != inputCard.Question {
-		t.Error("mismatched Question")
-	}
-	if parsedCard.Answer != inputCard.Answer {
-		t.Error("mismatched Answer")
+	if *inputCard != *parsedCard {
+		t.Error("inputCard does not match parsedCard")
+		t.Logf("inputCard: %#v\n", *inputCard)
+		t.Logf("parsedCard: %#v\n", *parsedCard)
 	}
 }
 
@@ -83,7 +67,151 @@ func TestCardWriteRead(t *testing.T) {
 	}
 	if *newCard != *oldCard {
 		t.Error("new and old cards do not match")
+		t.Logf("old card: %#v\n", *oldCard)
+		t.Logf("new card: %#v\n", *newCard)
 	}
-	fmt.Printf("old card: %#v\n", oldCard)
-	fmt.Printf("new card: %#v\n", newCard)
+}
+
+func TestGetCurrentReviewInterval(t *testing.T) {
+	type testCase struct {
+		LastReview time.Time
+		NextReview time.Time
+		Result     int
+	}
+	testCases := []testCase{
+		{
+			LastReview: time.Date(2021, 06, 24, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 06, 25, 0, 0, 0, 0, time.Local),
+			Result:     1,
+		},
+		{
+			LastReview: time.Date(2021, 11, 6, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 11, 8, 0, 0, 0, 0, time.Local),
+			Result:     2,
+		},
+		{
+			LastReview: time.Date(2021, 11, 8, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 11, 6, 0, 0, 0, 0, time.Local),
+			Result:     -2,
+		},
+		{
+			LastReview: time.Time{},
+			NextReview: time.Date(2021, 11, 6, 0, 0, 0, 0, time.Local),
+			Result:     1,
+		},
+	}
+	for _, test := range testCases {
+		card := NewCard("fake question", "fake answer")
+		card.LastReview = test.LastReview
+		card.NextReview = test.NextReview
+		interval := card.GetCurrentReviewInterval()
+		if interval != test.Result {
+			t.Errorf("Got unexpected interval %d (%d expected)", interval, test.Result)
+			t.Logf("card: %#v\n", *card)
+		}
+	}
+}
+
+func TestGetMultipliedReviewInterval(t *testing.T) {
+	type testCase struct {
+		LastReview time.Time
+		NextReview time.Time
+		Multiplier float64
+		Result     int
+	}
+	testCases := []testCase{
+		{
+			LastReview: time.Date(2021, 06, 24, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 06, 25, 0, 0, 0, 0, time.Local),
+			Multiplier: 1.0,
+			Result:     1,
+		},
+		{
+			LastReview: time.Date(2021, 06, 24, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 06, 25, 0, 0, 0, 0, time.Local),
+			Multiplier: 3.3,
+			Result:     3,
+		},
+		{
+			LastReview: time.Date(2021, 06, 24, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 06, 25, 0, 0, 0, 0, time.Local),
+			Multiplier: 3.8,
+			Result:     4,
+		},
+		{
+			LastReview: time.Date(2021, 06, 24, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 06, 25, 0, 0, 0, 0, time.Local),
+			Multiplier: 0.0,
+			Result:     0,
+		},
+		{
+			LastReview: time.Date(2021, 11, 6, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 11, 8, 0, 0, 0, 0, time.Local),
+			Multiplier: 0.0,
+			Result:     0,
+		},
+		{
+			LastReview: time.Date(2021, 11, 6, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 11, 8, 0, 0, 0, 0, time.Local),
+			Multiplier: 1.0,
+			Result:     2,
+		},
+		{
+			LastReview: time.Date(2021, 11, 6, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 11, 8, 0, 0, 0, 0, time.Local),
+			Multiplier: 3.5,
+			Result:     7,
+		},
+		{
+			LastReview: time.Date(2021, 06, 24, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 06, 25, 0, 0, 0, 0, time.Local),
+			Multiplier: -1.0,
+			Result:     -1,
+		},
+		{
+			LastReview: time.Date(2021, 11, 6, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 11, 8, 0, 0, 0, 0, time.Local),
+			Multiplier: -0.5,
+			Result:     -1,
+		},
+		{
+			LastReview: time.Date(2021, 11, 6, 0, 0, 0, 0, time.Local),
+			NextReview: time.Date(2021, 11, 8, 0, 0, 0, 0, time.Local),
+			Multiplier: 0.5,
+			Result:     1,
+		},
+	}
+	for _, test := range testCases {
+		card := NewCard("fake question", "fake answer")
+		card.LastReview = test.LastReview
+		card.NextReview = test.NextReview
+		interval := card.GetMultipliedReviewInterval(test.Multiplier)
+		if interval != test.Result {
+			t.Errorf("Got unexpected interval %d (%d expected)", interval, test.Result)
+			t.Logf("card: %#v\n", *card)
+		}
+	}
+}
+
+func TestSetNextReview(t *testing.T) {
+	card := NewCard("fake question", "fake answer")
+	if !card.LastReview.IsZero() {
+		t.Error("card.LastReview is not zero valued")
+	}
+	card.SetNextReview(1.0)
+	if interval := card.GetCurrentReviewInterval(); interval != 1 {
+		t.Errorf("got interval %d (expected 1)", interval)
+	}
+	card.SetNextReview(2.0)
+	if interval := card.GetCurrentReviewInterval(); interval != 2 {
+		t.Errorf("got interval %d (expected 2)", interval)
+	}
+	card.SetNextReview(4.0)
+	if interval := card.GetCurrentReviewInterval(); interval != 8 {
+		t.Errorf("got interval %d (expected 8)", interval)
+	}
+	card.SetNextReview(4.0)
+	if interval := card.GetCurrentReviewInterval(); interval != 32 {
+		t.Errorf("got interval %d (expected 32)", interval)
+	}
 }
