@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type DeckSource interface {
@@ -83,7 +84,7 @@ func (deckSource FlatFileDeckSource) LoadDeck(name string) (*Deck, error) {
 			continue
 		}
 		cardPath := filepath.Join(deckPath, entry.Name())
-		card, err := parseCardFromFile(cardPath)
+		card, err := readCardFromFile(cardPath)
 		if err != nil {
 			return &Deck{}, fmt.Errorf("failed to parse card %s: %s", cardPath, err)
 		}
@@ -153,4 +154,23 @@ func getDirFilenames(path string) ([]string, error) {
 	}
 
 	return filenames, nil
+}
+
+func readCardFromFile(path string) (*Card, error) {
+	// get id out of file name
+	filename := filepath.Base(path)
+	id := strings.Split(filename, ".")[0]
+
+	// read the file
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return &Card{}, fmt.Errorf("failed to read card file: %s", err)
+	}
+
+	// parse the card and return
+	card, err := ParseCardFromString(string(data), id)
+	if err != nil {
+		return &Card{}, fmt.Errorf("failed to parse card file: %s", err)
+	}
+	return card, nil
 }

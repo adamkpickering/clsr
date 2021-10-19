@@ -61,7 +61,7 @@ func TestCardWriteRead(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to write card to file: %s", err)
 	}
-	newCard, err := parseCardFromFile(filepath.Join(tempdir, filename))
+	newCard, err := readCardFromFile(filepath.Join(tempdir, filename))
 	if err != nil {
 		t.Errorf("failed to parse card from file: %s", err)
 	}

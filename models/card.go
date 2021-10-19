@@ -84,25 +84,6 @@ func NewCard(question string, answer string) *Card {
 	}
 }
 
-func parseCardFromFile(path string) (*Card, error) {
-	// get id out of file name
-	filename := filepath.Base(path)
-	id := strings.Split(filename, ".")[0]
-
-	// read the file
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return &Card{}, fmt.Errorf("failed to read card file: %s", err)
-	}
-
-	// parse the card and return
-	card, err := ParseCardFromString(string(data), id)
-	if err != nil {
-		return &Card{}, fmt.Errorf("failed to parse card file: %s", err)
-	}
-	return card, nil
-}
-
 func ParseCardFromString(data string, id string) (*Card, error) {
 	card := &Card{
 		ID: id,
