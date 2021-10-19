@@ -24,8 +24,9 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 
+	"github.com/adamkpickering/clsr/models"
+	"github.com/alexeyco/simpletable"
 	"github.com/spf13/cobra"
 )
 
@@ -39,17 +40,7 @@ var listCmd = &cobra.Command{
 		resourceType := args[0]
 		switch {
 		case resourceType == "decks":
-			entries, err := os.ReadDir(deckDirectory)
-			if err != nil {
-				return fmt.Errorf("failed to read deck directory: %s", err)
-			}
-			deckNames := []string{}
-			for _, entry := range entries {
-				if entry.IsDir() {
-					deckNames = append(deckNames, entry.Name())
-				}
-			}
-			fmt.Printf("%s\n", strings.Join(deckNames, "\n"))
+			return listDecks()
 		default:
 			return fmt.Errorf("unrecognized resource \"%s\"", resourceType)
 		}
@@ -69,4 +60,54 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// listCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func listDecks() error {
+	// get list of decks
+	entries, err := os.ReadDir(deckDirectory)
+	if err != nil {
+		return fmt.Errorf("failed to read deck directory: %s", err)
+	}
+	deckNames := []string{}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			deckNames = append(deckNames, entry.Name())
+		}
+	}
+
+	// load decks
+	deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
+	if err != nil {
+		return fmt.Errorf("failed to instantiate DeckSource: %s", err)
+	}
+	decks := []*models.Deck{}
+	for _, deckName := range deckNames {
+		deck, err := deckSource.LoadDeck(deckName)
+		if err != nil {
+			return fmt.Errorf("failed to load deck \"%s\": %s", deckName, err)
+		}
+		decks = append(decks, deck)
+	}
+
+	// display decks in table
+	table := simpletable.New()
+	table.SetStyle(simpletable.StyleCompactClassic)
+	table.Header = &simpletable.Header{
+		Cells: []*simpletable.Cell{
+			{Text: "Deck"},
+			{Text: "Cards Due"},
+			{Text: "Total Cards"},
+		},
+	}
+	for _, deck := range decks {
+		row := []*simpletable.Cell{
+			{Text: deck.Name},
+			{Text: fmt.Sprintf("%d", deck.CountCardsDue())},
+			{Text: fmt.Sprintf("%d", len(deck.Cards))},
+		}
+		table.Body.Cells = append(table.Body.Cells, row)
+	}
+	fmt.Println(table.String())
+
+	return nil
 }
