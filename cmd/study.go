@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/adamkpickering/clsr/models"
 	"github.com/adamkpickering/clsr/views"
@@ -48,10 +47,9 @@ var studyCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to load deck: %s", err)
 		}
-		now := time.Now().UTC()
 		cardsToStudy := []*models.Card{}
 		for _, card := range deck.Cards {
-			if card.NextReview.Before(now) {
+			if card.IsDue() {
 				cardsToStudy = append(cardsToStudy, card)
 			}
 		}

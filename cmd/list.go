@@ -44,7 +44,6 @@ var listCmd = &cobra.Command{
 		default:
 			return fmt.Errorf("unrecognized resource \"%s\"", resourceType)
 		}
-		return nil
 	},
 }
 
@@ -63,7 +62,7 @@ func init() {
 }
 
 func listDecks() error {
-	// get list of decks
+	// get list of deck names
 	entries, err := os.ReadDir(deckDirectory)
 	if err != nil {
 		return fmt.Errorf("failed to read deck directory: %s", err)

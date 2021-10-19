@@ -231,5 +231,5 @@ func (card *Card) SetNextReview(multiplier float64) {
 }
 
 func (card *Card) IsDue() bool {
-	return true
+	return card.NextReview.Before(time.Now())
 }
