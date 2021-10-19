@@ -21,3 +21,13 @@ func NewDeck(path string) (*Deck, error) {
 func (d *Deck) AddCard(card *Card) {
 	d.Cards = append(d.Cards, card)
 }
+
+func (d *Deck) CountCardsDue() int {
+	count := 0
+	for _, card := range d.Cards {
+		if card.IsDue() {
+			count += 1
+		}
+	}
+	return count
+}

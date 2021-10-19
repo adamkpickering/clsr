@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/adamkpickering/clsr/models"
 	"github.com/adamkpickering/clsr/views"
@@ -35,7 +34,7 @@ import (
 var studyCmd = &cobra.Command{
 	Use:   "study",
 	Short: "Study cards that are due",
-	Long:  "Used to study any cards that need to be studied.",
+	Long:  "\nUsed to study any cards that need to be studied.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// get a DeckSource
 		deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
@@ -48,10 +47,9 @@ var studyCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to load deck: %s", err)
 		}
-		now := time.Now().UTC()
 		cardsToStudy := []*models.Card{}
 		for _, card := range deck.Cards {
-			if card.NextReview.Before(now) {
+			if card.IsDue() {
 				cardsToStudy = append(cardsToStudy, card)
 			}
 		}

@@ -229,3 +229,7 @@ func (card *Card) SetNextReview(multiplier float64) {
 	card.LastReview = time.Now().Truncate(24 * time.Hour)
 	card.NextReview = card.LastReview.Add(newDifference).Round(24 * time.Hour)
 }
+
+func (card *Card) IsDue() bool {
+	return card.NextReview.Before(time.Now())
+}
