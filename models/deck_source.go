@@ -76,11 +76,7 @@ func (deckSource FlatFileDeckSource) LoadDeck(name string) (*Deck, error) {
 		Name: name,
 	}
 	for _, entry := range entries {
-		entryInfo, err := entry.Info()
-		if err != nil {
-			return &Deck{}, fmt.Errorf("failed to get info for entry %s: %s", entry.Name(), err)
-		}
-		if entryInfo.IsDir() {
+		if entry.IsDir() {
 			continue
 		}
 		cardPath := filepath.Join(deckPath, entry.Name())
