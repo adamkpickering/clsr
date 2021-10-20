@@ -27,7 +27,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/adamkpickering/clsr/models"
 	"github.com/spf13/cobra"
@@ -140,9 +139,8 @@ func getCardViaEditor() (*models.Card, error) {
 	if err != nil {
 		return &models.Card{}, fmt.Errorf("failed to read file: %s", err)
 	}
-	cardFilename := filepath.Base(cardPath)
-	cardID := strings.Split(cardFilename, ".")[0]
-	card, err := models.ParseCardFromString(string(data), cardID)
+	card := &models.Card{}
+	err = card.UnmarshalText(data)
 	if err != nil {
 		return &models.Card{}, fmt.Errorf("failed to parse card: %s", err)
 	}
@@ -156,16 +154,31 @@ func getCardViaEditor() (*models.Card, error) {
 // finished with it.
 func getInterimCardFile(baseDir string) (string, error) {
 	// get an interim card
-	question := "Write the question here."
-	answer := "Write the answer here."
+	question := "# Write the question here. All lines starting with # will be ignored."
+	answer := "# Write the answer here. All lines starting with # will be ignored."
 	card := models.NewCard(question, answer)
 
-	// write to temporary file
+	// get temporary file
 	cardPath := filepath.Join(baseDir, models.GetCardFilename(card))
-	err := models.WriteCardToFile(cardPath, card)
+	fd, err := os.Create(cardPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to create file: %s", err)
+		return "", fmt.Errorf("failed to create temp card: %s", err)
+	}
+	defer fd.Close()
+
+	// write to file
+	comment := `# The lines until the first "---" contain important card metadata.
+# Edit them at your own risk.
+`
+	fd.Write([]byte(comment))
+	text, err := card.MarshalText()
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal card: %s", err)
+	}
+	_, err = fd.Write(text)
+	if err != nil {
+		return "", fmt.Errorf("failed to write marshalled card: %s", err)
 	}
 
-	return filepath.Join(baseDir, fmt.Sprintf("%s.txt", card.ID)), nil
+	return cardPath, nil
 }

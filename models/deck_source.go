@@ -171,7 +171,8 @@ func ReadCardFromFile(path string) (*Card, error) {
 	}
 
 	// parse the card and return
-	card, err := ParseCardFromString(string(data))
+	card := &Card{}
+	err = card.UnmarshalText(data)
 	if err != nil {
 		return &Card{}, fmt.Errorf("failed to parse card file: %s", err)
 	}
@@ -179,27 +180,16 @@ func ReadCardFromFile(path string) (*Card, error) {
 }
 
 func WriteCardToFile(path string, card *Card) error {
-	// process card into a map
-	outputCard := map[string]string{}
-	outputCard["ID"] = card.ID
-	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
-	outputCard["LastReview"] = card.LastReview.Format(dateLayout)
-	outputCard["NextReview"] = card.NextReview.Format(dateLayout)
-	outputCard["Active"] = fmt.Sprintf("%t", card.Active)
-	outputCard["Question"] = card.Question
-	outputCard["Answer"] = card.Answer
-
-	// open/create file
-	fd, err := os.Create(path)
+	// marshal card as text
+	text, err := card.MarshalText()
 	if err != nil {
-		return fmt.Errorf("failed to open card file for writing: %s", err)
+		return fmt.Errorf("failed to marshal card as text: %s", err)
 	}
-	defer fd.Close()
 
-	// fill template and write to file
-	err = CardTemplate.Execute(fd, outputCard)
+	// write file
+	err = os.WriteFile(path, text, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to fill card template: %s", err)
+		return fmt.Errorf("failed to write marshalled data to file: %s", err)
 	}
 
 	return nil

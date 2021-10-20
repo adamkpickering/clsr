@@ -1,6 +1,7 @@
 package models
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"math/rand"
@@ -28,6 +29,7 @@ var lastReviewRegex *regexp.Regexp
 var nextReviewRegex *regexp.Regexp
 var activeRegex *regexp.Regexp
 var dividerRegex *regexp.Regexp
+var commentRegex *regexp.Regexp
 
 func init() {
 	idRegex = regexp.MustCompile(`^ID *=`)
@@ -36,6 +38,7 @@ func init() {
 	nextReviewRegex = regexp.MustCompile(`^NextReview *=`)
 	activeRegex = regexp.MustCompile(`^Active *=`)
 	dividerRegex = regexp.MustCompile(`^---`)
+	commentRegex = regexp.MustCompile(`^ *#`)
 }
 
 type Card struct {
@@ -77,11 +80,37 @@ func NewCard(question string, answer string) *Card {
 	}
 }
 
-func ParseCardFromString(data string) (*Card, error) {
-	card := &Card{}
+func (card *Card) MarshalText() ([]byte, error) {
+	// process card into a map
+	outputCard := map[string]string{}
+	outputCard["ID"] = card.ID
+	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
+	outputCard["LastReview"] = card.LastReview.Format(dateLayout)
+	outputCard["NextReview"] = card.NextReview.Format(dateLayout)
+	outputCard["Active"] = fmt.Sprintf("%t", card.Active)
+	outputCard["Question"] = card.Question
+	outputCard["Answer"] = card.Answer
 
+	// fill buffer with output
+	buffer := &bytes.Buffer{}
+	err := CardTemplate.Execute(buffer, outputCard)
+	if err != nil {
+		return []byte{}, fmt.Errorf("failed to execute CardTemplate: %s", err)
+	}
+
+	return buffer.Bytes(), nil
+}
+
+func (card *Card) UnmarshalText(text []byte) error {
 	// trim and split the string into lines
-	lines := strings.Split(strings.TrimSpace(data), "\n")
+	cardAsString := string(text)
+	lines := strings.Split(strings.TrimSpace(cardAsString), "\n")
+
+	// instantiate variables to be filled
+	var id string
+	var version int
+	var lastReview, nextReview time.Time
+	var active bool
 
 	var state parseState = header
 	var question_lines, answer_lines []string
@@ -91,72 +120,83 @@ func ParseCardFromString(data string) (*Card, error) {
 		case state == header:
 			if idRegex.MatchString(line) {
 				rawID := strings.Split(line, "=")[1]
-				trimmedID := strings.TrimSpace(rawID)
-				card.ID = trimmedID
+				id = strings.TrimSpace(rawID)
+
 			} else if versionRegex.MatchString(line) {
 				rawVersion := strings.Split(line, "=")[1]
 				trimmedVersion := strings.TrimSpace(rawVersion)
-				version, err := strconv.ParseInt(trimmedVersion, 10, strconv.IntSize)
+				value, err := strconv.ParseInt(trimmedVersion, 10, strconv.IntSize)
 				if err != nil {
-					return &Card{}, fmt.Errorf("failed to parse Version: %s", err)
+					return fmt.Errorf("failed to parse Version: %s", err)
 				}
-				card.Version = int(version)
+				version = int(value)
 
 			} else if lastReviewRegex.MatchString(line) {
+				var value time.Time
 				rawValue := strings.Split(line, "=")[1]
 				trimmedValue := strings.TrimSpace(rawValue)
 				possibleZeroTime, err := time.Parse(dateLayout, trimmedValue)
 				if err != nil {
-					return &Card{}, fmt.Errorf("failed to parse LastReview as zero time: %s", err)
+					return fmt.Errorf("failed to parse LastReview as zero time: %s", err)
 				}
 				if possibleZeroTime.IsZero() {
-					card.LastReview = possibleZeroTime
+					value = possibleZeroTime
 				} else {
-					value, err := time.ParseInLocation(dateLayout, trimmedValue, time.Local)
+					value, err = time.ParseInLocation(dateLayout, trimmedValue, time.Local)
 					if err != nil {
-						return &Card{}, fmt.Errorf("failed to parse LastReview: %s", err)
+						return fmt.Errorf("failed to parse LastReview: %s", err)
 					}
-					card.LastReview = value
 				}
+				lastReview = value
 
 			} else if nextReviewRegex.MatchString(line) {
 				rawValue := strings.Split(line, "=")[1]
 				trimmedValue := strings.TrimSpace(rawValue)
 				value, err := time.ParseInLocation(dateLayout, trimmedValue, time.Local)
 				if err != nil {
-					return &Card{}, fmt.Errorf("failed to parse NextReview: %s", err)
+					return fmt.Errorf("failed to parse NextReview: %s", err)
 				}
-				card.NextReview = value
+				nextReview = value
 
 			} else if activeRegex.MatchString(line) {
 				rawValue := strings.Split(line, "=")[1]
 				trimmedValue := strings.TrimSpace(rawValue)
 				value, err := strconv.ParseBool(trimmedValue)
 				if err != nil {
-					return &Card{}, fmt.Errorf("failed to parse Active: %s", err)
+					return fmt.Errorf("failed to parse Active: %s", err)
 				}
-				card.Active = value
+				active = value
 
 			} else if dividerRegex.MatchString(line) {
 				state = question
 			}
 
 		case state == question:
-			if dividerRegex.MatchString(line) {
+			if commentRegex.MatchString(line) {
+				continue
+			} else if dividerRegex.MatchString(line) {
 				state = answer
 			} else {
 				question_lines = append(question_lines, line)
 			}
 
 		case state == answer:
-			answer_lines = append(answer_lines, line)
+			if commentRegex.MatchString(line) {
+				continue
+			} else {
+				answer_lines = append(answer_lines, line)
+			}
 		}
 	}
 
+	card.ID = id
+	card.Version = version
+	card.LastReview = lastReview
+	card.NextReview = nextReview
+	card.Active = active
 	card.Question = strings.Join(question_lines, "\n")
 	card.Answer = strings.Join(answer_lines, "\n")
-
-	return card, nil
+	return nil
 }
 
 // Returns the current review interval, that is, the number of days
