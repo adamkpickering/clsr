@@ -1,6 +1,7 @@
 package models
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"math/rand"
@@ -165,6 +166,27 @@ func ParseCardFromString(data string) (*Card, error) {
 	card.Answer = strings.Join(answer_lines, "\n")
 
 	return card, nil
+}
+
+func (card *Card) MarshalText() ([]byte, error) {
+	// process card into a map
+	outputCard := map[string]string{}
+	outputCard["ID"] = card.ID
+	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
+	outputCard["LastReview"] = card.LastReview.Format(dateLayout)
+	outputCard["NextReview"] = card.NextReview.Format(dateLayout)
+	outputCard["Active"] = fmt.Sprintf("%t", card.Active)
+	outputCard["Question"] = card.Question
+	outputCard["Answer"] = card.Answer
+
+	// fill buffer with output
+	buffer := &bytes.Buffer{}
+	err := CardTemplate.Execute(buffer, outputCard)
+	if err != nil {
+		return []byte{}, fmt.Errorf("failed to execute CardTemplate: %s", err)
+	}
+
+	return buffer.Bytes(), nil
 }
 
 // Returns the current review interval, that is, the number of days
