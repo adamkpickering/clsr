@@ -28,6 +28,7 @@ var lastReviewRegex *regexp.Regexp
 var nextReviewRegex *regexp.Regexp
 var activeRegex *regexp.Regexp
 var dividerRegex *regexp.Regexp
+var commentRegex *regexp.Regexp
 
 func init() {
 	idRegex = regexp.MustCompile(`^ID *=`)
@@ -36,6 +37,7 @@ func init() {
 	nextReviewRegex = regexp.MustCompile(`^NextReview *=`)
 	activeRegex = regexp.MustCompile(`^Active *=`)
 	dividerRegex = regexp.MustCompile(`^---`)
+	commentRegex = regexp.MustCompile(`^ *#`)
 }
 
 type Card struct {
@@ -142,14 +144,20 @@ func ParseCardFromString(data string) (*Card, error) {
 			}
 
 		case state == question:
-			if dividerRegex.MatchString(line) {
+			if commentRegex.MatchString(line) {
+				continue
+			} else if dividerRegex.MatchString(line) {
 				state = answer
 			} else {
 				question_lines = append(question_lines, line)
 			}
 
 		case state == answer:
-			answer_lines = append(answer_lines, line)
+			if commentRegex.MatchString(line) {
+				continue
+			} else {
+				answer_lines = append(answer_lines, line)
+			}
 		}
 	}
 
