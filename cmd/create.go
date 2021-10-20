@@ -27,7 +27,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/adamkpickering/clsr/models"
 	"github.com/spf13/cobra"
@@ -140,9 +139,8 @@ func getCardViaEditor() (*models.Card, error) {
 	if err != nil {
 		return &models.Card{}, fmt.Errorf("failed to read file: %s", err)
 	}
-	cardFilename := filepath.Base(cardPath)
-	cardID := strings.Split(cardFilename, ".")[0]
-	card, err := models.ParseCardFromString(string(data), cardID)
+	card := &models.Card{}
+	err = card.UnmarshalText(data)
 	if err != nil {
 		return &models.Card{}, fmt.Errorf("failed to parse card: %s", err)
 	}
@@ -170,7 +168,7 @@ func getInterimCardFile(baseDir string) (string, error) {
 
 	// write to file
 	comment := `# The lines until the first "---" contain important card metadata.
-Edit them at your own risk.
+# Edit them at your own risk.
 `
 	fd.Write([]byte(comment))
 	text, err := card.MarshalText()

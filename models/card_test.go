@@ -22,7 +22,7 @@ Active = %t
 %s
 `
 
-func TestParseCardFromString(t *testing.T) {
+func TestCardUnmarshalText(t *testing.T) {
 	id := "1234asdf"
 	question := `
 here is the question
@@ -46,7 +46,8 @@ good job`
 		Answer:     answer,
 	}
 	data := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(dateLayout), inputCard.NextReview.Format(dateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
-	parsedCard, err := ParseCardFromString(data)
+	parsedCard := &Card{}
+	err := parsedCard.UnmarshalText([]byte(data))
 	if err != nil {
 		t.Errorf("failed to parse card from string: %s", err)
 	}
@@ -235,7 +236,8 @@ func TestHonorComments(t *testing.T) {
 	inputCardString := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(dateLayout), inputCard.NextReview.Format(dateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
 
 	// parse the card and ensure that comments are not there
-	parsedCard, err := ParseCardFromString(inputCardString)
+	parsedCard := &Card{}
+	err := parsedCard.UnmarshalText([]byte(inputCardString))
 	if err != nil {
 		t.Errorf("failed to parse card from string: %s", err)
 	}

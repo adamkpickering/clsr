@@ -171,7 +171,8 @@ func ReadCardFromFile(path string) (*Card, error) {
 	}
 
 	// parse the card and return
-	card, err := ParseCardFromString(string(data))
+	card := &Card{}
+	err = card.UnmarshalText(data)
 	if err != nil {
 		return &Card{}, fmt.Errorf("failed to parse card file: %s", err)
 	}
