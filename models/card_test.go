@@ -8,6 +8,7 @@ import (
 )
 
 var cardFmtString string = `
+# here is a comment line
 ID = %s
 Version = %d
 LastReview = %s
@@ -216,5 +217,34 @@ func TestSetNextReview(t *testing.T) {
 	card.SetNextReview(4.0)
 	if interval := card.GetCurrentReviewInterval(); interval != 32 {
 		t.Errorf("got interval %d (expected 32)", interval)
+	}
+}
+
+// Tests that any lines starting with # in card .txt files are ignored,
+// whether they are in the header fields, the question field or the
+// answer field.
+func TestHonorComments(t *testing.T) {
+	// create a card string with comments
+	questionComment := "# this is a comment line"
+	questionContent := "this is the actual question"
+	question := questionComment + "\n" + questionContent
+	answerComment := "# this is a comment line"
+	answerContent := "this is the actual answer"
+	answer := answerComment + "\n" + answerContent
+	inputCard := NewCard(question, answer)
+	inputCardString := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(dateLayout), inputCard.NextReview.Format(dateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
+
+	// parse the card and ensure that comments are not there
+	parsedCard, err := ParseCardFromString(inputCardString)
+	if err != nil {
+		t.Errorf("failed to parse card from string: %s", err)
+	}
+	if parsedCard.Question != questionContent {
+		fmtString := "parsed card question %q does not match expected (%q)"
+		t.Errorf(fmtString, parsedCard.Question, questionContent)
+	}
+	if parsedCard.Answer != answerContent {
+		fmtString := "parsed card answer %q does not match expected (%q)"
+		t.Errorf(fmtString, parsedCard.Answer, answerContent)
 	}
 }
