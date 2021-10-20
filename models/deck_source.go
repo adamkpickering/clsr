@@ -1,10 +1,21 @@
 package models
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
+	"text/template"
 )
+
+var CardTemplate *template.Template
+
+//go:embed card.txt.tmpl
+var cardTemplateText string
+
+func init() {
+	CardTemplate = template.Must(template.New("card").Parse(cardTemplateText))
+}
 
 type DeckSource interface {
 	CreateDeck(name string) (*Deck, error)
@@ -75,15 +86,11 @@ func (deckSource FlatFileDeckSource) LoadDeck(name string) (*Deck, error) {
 		Name: name,
 	}
 	for _, entry := range entries {
-		entryInfo, err := entry.Info()
-		if err != nil {
-			return &Deck{}, fmt.Errorf("failed to get info for entry %s: %s", entry.Name(), err)
-		}
-		if entryInfo.IsDir() {
+		if entry.IsDir() {
 			continue
 		}
 		cardPath := filepath.Join(deckPath, entry.Name())
-		card, err := parseCardFromFile(cardPath)
+		card, err := ReadCardFromFile(cardPath)
 		if err != nil {
 			return &Deck{}, fmt.Errorf("failed to parse card %s: %s", cardPath, err)
 		}
@@ -103,7 +110,7 @@ func (deckSource FlatFileDeckSource) SyncDeck(deck *Deck) error {
 	}
 	newCardFilenames := map[string]struct{}{}
 	for _, card := range deck.Cards {
-		name := getCardFilename(card)
+		name := GetCardFilename(card)
 		newCardFilenames[name] = struct{}{}
 	}
 	for _, currentCardFilename := range currentCardFilenames {
@@ -119,7 +126,8 @@ func (deckSource FlatFileDeckSource) SyncDeck(deck *Deck) error {
 
 	// write remaining cards
 	for _, card := range deck.Cards {
-		err := card.WriteToDir(deckPath)
+		cardPath := filepath.Join(deckPath, GetCardFilename(card))
+		err := WriteCardToFile(cardPath, card)
 		if err != nil {
 			return fmt.Errorf("failed to write card %s: %s", card.ID, err)
 		}
@@ -128,7 +136,7 @@ func (deckSource FlatFileDeckSource) SyncDeck(deck *Deck) error {
 	return nil
 }
 
-func getCardFilename(card *Card) string {
+func GetCardFilename(card *Card) string {
 	return fmt.Sprintf("%s.txt", card.ID)
 }
 
@@ -153,4 +161,46 @@ func getDirFilenames(path string) ([]string, error) {
 	}
 
 	return filenames, nil
+}
+
+func ReadCardFromFile(path string) (*Card, error) {
+	// read the file
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return &Card{}, fmt.Errorf("failed to read card file: %s", err)
+	}
+
+	// parse the card and return
+	card, err := ParseCardFromString(string(data))
+	if err != nil {
+		return &Card{}, fmt.Errorf("failed to parse card file: %s", err)
+	}
+	return card, nil
+}
+
+func WriteCardToFile(path string, card *Card) error {
+	// process card into a map
+	outputCard := map[string]string{}
+	outputCard["ID"] = card.ID
+	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
+	outputCard["LastReview"] = card.LastReview.Format(dateLayout)
+	outputCard["NextReview"] = card.NextReview.Format(dateLayout)
+	outputCard["Active"] = fmt.Sprintf("%t", card.Active)
+	outputCard["Question"] = card.Question
+	outputCard["Answer"] = card.Answer
+
+	// open/create file
+	fd, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("failed to open card file for writing: %s", err)
+	}
+	defer fd.Close()
+
+	// fill template and write to file
+	err = CardTemplate.Execute(fd, outputCard)
+	if err != nil {
+		return fmt.Errorf("failed to fill card template: %s", err)
+	}
+
+	return nil
 }

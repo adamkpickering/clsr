@@ -161,7 +161,8 @@ func getInterimCardFile(baseDir string) (string, error) {
 	card := models.NewCard(question, answer)
 
 	// write to temporary file
-	err := card.WriteToDir(baseDir)
+	cardPath := filepath.Join(baseDir, models.GetCardFilename(card))
+	err := models.WriteCardToFile(cardPath, card)
 	if err != nil {
 		return "", fmt.Errorf("failed to create file: %s", err)
 	}
