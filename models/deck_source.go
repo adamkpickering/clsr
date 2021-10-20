@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"text/template"
 )
 
@@ -165,10 +164,6 @@ func getDirFilenames(path string) ([]string, error) {
 }
 
 func ReadCardFromFile(path string) (*Card, error) {
-	// get id out of file name
-	filename := filepath.Base(path)
-	id := strings.Split(filename, ".")[0]
-
 	// read the file
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -176,7 +171,7 @@ func ReadCardFromFile(path string) (*Card, error) {
 	}
 
 	// parse the card and return
-	card, err := ParseCardFromString(string(data), id)
+	card, err := ParseCardFromString(string(data))
 	if err != nil {
 		return &Card{}, fmt.Errorf("failed to parse card file: %s", err)
 	}
@@ -186,6 +181,7 @@ func ReadCardFromFile(path string) (*Card, error) {
 func WriteCardToFile(path string, card *Card) error {
 	// process card into a map
 	outputCard := map[string]string{}
+	outputCard["ID"] = card.ID
 	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
 	outputCard["LastReview"] = card.LastReview.Format(dateLayout)
 	outputCard["NextReview"] = card.NextReview.Format(dateLayout)

@@ -22,6 +22,7 @@ const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 const dateLayout = "2006-01-02"
 
+var idRegex *regexp.Regexp
 var versionRegex *regexp.Regexp
 var lastReviewRegex *regexp.Regexp
 var nextReviewRegex *regexp.Regexp
@@ -29,6 +30,7 @@ var activeRegex *regexp.Regexp
 var dividerRegex *regexp.Regexp
 
 func init() {
+	idRegex = regexp.MustCompile(`^ID *=`)
 	versionRegex = regexp.MustCompile(`^Version *=`)
 	lastReviewRegex = regexp.MustCompile(`^LastReview *=`)
 	nextReviewRegex = regexp.MustCompile(`^NextReview *=`)
@@ -75,10 +77,8 @@ func NewCard(question string, answer string) *Card {
 	}
 }
 
-func ParseCardFromString(data string, id string) (*Card, error) {
-	card := &Card{
-		ID: id,
-	}
+func ParseCardFromString(data string) (*Card, error) {
+	card := &Card{}
 
 	// trim and split the string into lines
 	lines := strings.Split(strings.TrimSpace(data), "\n")
@@ -89,7 +89,11 @@ func ParseCardFromString(data string, id string) (*Card, error) {
 		switch {
 
 		case state == header:
-			if versionRegex.MatchString(line) {
+			if idRegex.MatchString(line) {
+				rawID := strings.Split(line, "=")[1]
+				trimmedID := strings.TrimSpace(rawID)
+				card.ID = trimmedID
+			} else if versionRegex.MatchString(line) {
 				rawVersion := strings.Split(line, "=")[1]
 				trimmedVersion := strings.TrimSpace(rawVersion)
 				version, err := strconv.ParseInt(trimmedVersion, 10, strconv.IntSize)

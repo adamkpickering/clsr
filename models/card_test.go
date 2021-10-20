@@ -7,6 +7,20 @@ import (
 	"time"
 )
 
+var cardFmtString string = `
+ID = %s
+Version = %d
+LastReview = %s
+
+NextReview=%s
+garbage garbage = asdf
+Active = %t
+---
+%s
+---
+%s
+`
+
 func TestParseCardFromString(t *testing.T) {
 	id := "1234asdf"
 	question := `
@@ -30,19 +44,8 @@ good job`
 		Question:   question,
 		Answer:     answer,
 	}
-	data := fmt.Sprintf(`
-Version = %d
-LastReview = %s
-
-NextReview=%s
-garbage garbage = asdf
-Active = %t
----
-%s
----
-%s
-`, inputCard.Version, inputCard.LastReview.Format(dateLayout), inputCard.NextReview.Format(dateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
-	parsedCard, err := ParseCardFromString(data, id)
+	data := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(dateLayout), inputCard.NextReview.Format(dateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
+	parsedCard, err := ParseCardFromString(data)
 	if err != nil {
 		t.Errorf("failed to parse card from string: %s", err)
 	}
