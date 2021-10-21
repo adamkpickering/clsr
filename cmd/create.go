@@ -35,14 +35,12 @@ import (
 
 var ErrNotModified error = errors.New("temporary file not modified")
 
-var deckName string
-
 // createCmd represents the create command
 var createCmd = &cobra.Command{
-	Use:   "create <resource_type>",
+	Use:   "create <resource_type> [<resource_name>]",
 	Short: "Create a resource",
 	Long:  "\nAllows the user to create clsr resources.",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// check that the directory has been initialized
 		if _, err := os.Stat(deckDirectory); errors.Is(err, os.ErrNotExist) {
@@ -61,6 +59,10 @@ var createCmd = &cobra.Command{
 
 		case "card":
 			// load the deck
+			if len(deckName) == 0 {
+				return errors.New("--deck or -d is required for this command")
+			}
+
 			deck, err := deckSource.LoadDeck(deckName)
 			if err != nil {
 				return fmt.Errorf("failed to load deck %q: %w", deckName, err)
@@ -107,6 +109,15 @@ var createCmd = &cobra.Command{
 			}
 
 		case "deck":
+			// get deckName
+			if len(args) == 2 {
+				deckName = args[1]
+			}
+			if len(deckName) == 0 {
+				msg := "must specify deck name either as positional arg or in --deck/-d flag"
+				return errors.New(msg)
+			}
+
 			// create the deck
 			_, err := deckSource.CreateDeck(deckName)
 			if err != nil {
@@ -133,8 +144,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// createCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	createCmd.Flags().StringVarP(&deckName, "deck", "d", "", "the deck to act on")
-	createCmd.MarkFlagRequired("deck")
 }
 
 // Creates a temporary file that is filled with the data passed in text. Returns

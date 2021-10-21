@@ -32,6 +32,8 @@ import (
 
 const deckDirectory string = "decks"
 
+var deckName string
+
 var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
@@ -64,7 +66,10 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.clsr.yaml)")
+	configHelp := "config file (default is $HOME/.clsr.yaml)"
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", configHelp)
+	deckHelp := "the deck to act on, if applicable"
+	rootCmd.PersistentFlags().StringVarP(&deckName, "deck", "d", "", deckHelp)
 }
 
 // initConfig reads in config file and ENV variables if set.

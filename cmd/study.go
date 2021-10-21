@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/adamkpickering/clsr/models"
@@ -43,6 +44,9 @@ var studyCmd = &cobra.Command{
 		}
 
 		// get a list of cards to study
+		if len(deckName) == 0 {
+			return errors.New("--deck or -d is required for this command")
+		}
 		deck, err := deckSource.LoadDeck(deckName)
 		if err != nil {
 			return fmt.Errorf("failed to load deck: %w", err)
@@ -96,6 +100,4 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// studyCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	studyCmd.Flags().StringVarP(&deckName, "deck", "d", "", "the deck to study")
-	studyCmd.MarkFlagRequired("deck")
 }
