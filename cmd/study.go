@@ -49,7 +49,7 @@ var studyCmd = &cobra.Command{
 		}
 		cardsToStudy := []*models.Card{}
 		for _, card := range deck.Cards {
-			if card.IsDue() {
+			if card.IsDue() && card.Active {
 				cardsToStudy = append(cardsToStudy, card)
 			}
 		}
