@@ -2,6 +2,7 @@ package models
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,12 +41,9 @@ func (deckSource FlatFileDeckSource) CreateDeck(name string) (*Deck, error) {
 	deckPath := filepath.Join(deckSource.baseDir, name)
 	err := os.MkdirAll(deckPath, 0755)
 	if err != nil {
-		return &Deck{}, fmt.Errorf("failed to create new deck: %s", err)
+		return &Deck{}, fmt.Errorf("failed to create deck %q", name)
 	}
-	deck, err := NewDeck(name)
-	if err != nil {
-		return &Deck{}, fmt.Errorf("failed to construct *Deck: %s", err)
-	}
+	deck := NewDeck(name)
 	return deck, nil
 }
 
@@ -53,8 +51,7 @@ func (deckSource FlatFileDeckSource) ListDecks() ([]string, error) {
 	deckNames := []string{}
 	entries, err := os.ReadDir(deckSource.baseDir)
 	if err != nil {
-		newErr := fmt.Errorf("could not read base directory: %s", err)
-		return []string{}, newErr
+		return []string{}, errors.New("failed to get deck list")
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -68,7 +65,7 @@ func (deckSource FlatFileDeckSource) DeleteDeck(name string) error {
 	deckPath := filepath.Join(deckSource.baseDir, name)
 	err := os.Remove(deckPath)
 	if err != nil {
-		return fmt.Errorf("failed to remove deck: %s", err)
+		return fmt.Errorf("failed to remove deck %q", name)
 	}
 	return nil
 }
@@ -78,7 +75,7 @@ func (deckSource FlatFileDeckSource) LoadDeck(name string) (*Deck, error) {
 	deckPath := filepath.Join(deckSource.baseDir, name)
 	entries, err := os.ReadDir(deckPath)
 	if err != nil {
-		return &Deck{}, fmt.Errorf("failed to read deck %s: %s", name, err)
+		return &Deck{}, fmt.Errorf("failed to read deck %q", name)
 	}
 
 	// load each card in the deck
@@ -92,7 +89,7 @@ func (deckSource FlatFileDeckSource) LoadDeck(name string) (*Deck, error) {
 		cardPath := filepath.Join(deckPath, entry.Name())
 		card, err := ReadCardFromFile(cardPath)
 		if err != nil {
-			return &Deck{}, fmt.Errorf("failed to parse card %s: %s", cardPath, err)
+			return &Deck{}, fmt.Errorf("failed to parse card %q", cardPath)
 		}
 		deck.Cards = append(deck.Cards, card)
 	}
@@ -106,7 +103,7 @@ func (deckSource FlatFileDeckSource) SyncDeck(deck *Deck) error {
 	// delete any cards that are not in the Deck
 	currentCardFilenames, err := getDirFilenames(deckPath)
 	if err != nil {
-		return fmt.Errorf("failed to read deck directory: %s", err)
+		return fmt.Errorf("failed to read deck %q", deck.Name)
 	}
 	newCardFilenames := map[string]struct{}{}
 	for _, card := range deck.Cards {
@@ -119,7 +116,7 @@ func (deckSource FlatFileDeckSource) SyncDeck(deck *Deck) error {
 			cardPath := filepath.Join(deckPath, currentCardFilename)
 			err := os.Remove(cardPath)
 			if err != nil {
-				return fmt.Errorf("failed to remove %s: %s", cardPath, err)
+				return fmt.Errorf("failed to remove card %q", cardPath)
 			}
 		}
 	}
@@ -129,7 +126,7 @@ func (deckSource FlatFileDeckSource) SyncDeck(deck *Deck) error {
 		cardPath := filepath.Join(deckPath, GetCardFilename(card))
 		err := WriteCardToFile(cardPath, card)
 		if err != nil {
-			return fmt.Errorf("failed to write card %s: %s", card.ID, err)
+			return fmt.Errorf("failed to write card %q", card.ID)
 		}
 	}
 
@@ -144,7 +141,8 @@ func getDirFilenames(path string) ([]string, error) {
 	// get files/dirs in directory
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return []string{}, fmt.Errorf("failed to read directory: %s", err)
+		fmtString := "failed to read directory %s: %w"
+		return []string{}, fmt.Errorf(fmtString, path, err)
 	}
 
 	// get names of only files
@@ -152,7 +150,8 @@ func getDirFilenames(path string) ([]string, error) {
 	for _, entry := range entries {
 		entryInfo, err := entry.Info()
 		if err != nil {
-			return []string{}, fmt.Errorf("failed to get info for entry %s: %s", entry.Name(), err)
+			fmtString := "failed to get info for entry %q: %w"
+			return []string{}, fmt.Errorf(fmtString, entry.Name(), err)
 		}
 		if entryInfo.IsDir() {
 			continue
@@ -167,14 +166,14 @@ func ReadCardFromFile(path string) (*Card, error) {
 	// read the file
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return &Card{}, fmt.Errorf("failed to read card file: %s", err)
+		return &Card{}, fmt.Errorf("failed to read card file: %w", err)
 	}
 
 	// parse the card and return
 	card := &Card{}
 	err = card.UnmarshalText(data)
 	if err != nil {
-		return &Card{}, fmt.Errorf("failed to parse card file: %s", err)
+		return &Card{}, fmt.Errorf("failed to parse card file: %w", err)
 	}
 	return card, nil
 }
@@ -183,13 +182,13 @@ func WriteCardToFile(path string, card *Card) error {
 	// marshal card as text
 	text, err := card.MarshalText()
 	if err != nil {
-		return fmt.Errorf("failed to marshal card as text: %s", err)
+		return fmt.Errorf("failed to marshal card as text: %w", err)
 	}
 
 	// write file
 	err = os.WriteFile(path, text, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to write marshalled data to file: %s", err)
+		return fmt.Errorf("failed to write marshalled data to file: %w", err)
 	}
 
 	return nil

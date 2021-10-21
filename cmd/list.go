@@ -42,7 +42,7 @@ var listCmd = &cobra.Command{
 		case resourceType == "decks":
 			return listDecks()
 		default:
-			return fmt.Errorf("unrecognized resource \"%s\"", resourceType)
+			return fmt.Errorf("unrecognized resource %q", resourceType)
 		}
 	},
 }
@@ -65,7 +65,7 @@ func listDecks() error {
 	// get list of deck names
 	entries, err := os.ReadDir(deckDirectory)
 	if err != nil {
-		return fmt.Errorf("failed to read deck directory: %s", err)
+		return fmt.Errorf("failed to read deck directory: %w", err)
 	}
 	deckNames := []string{}
 	for _, entry := range entries {
@@ -77,13 +77,13 @@ func listDecks() error {
 	// load decks
 	deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
 	if err != nil {
-		return fmt.Errorf("failed to instantiate DeckSource: %s", err)
+		return fmt.Errorf("failed to instantiate DeckSource: %w", err)
 	}
 	decks := []*models.Deck{}
 	for _, deckName := range deckNames {
 		deck, err := deckSource.LoadDeck(deckName)
 		if err != nil {
-			return fmt.Errorf("failed to load deck \"%s\": %s", deckName, err)
+			return fmt.Errorf("failed to load deck %q: %w", deckName, err)
 		}
 		decks = append(decks, deck)
 	}

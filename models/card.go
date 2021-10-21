@@ -91,7 +91,7 @@ func (card *Card) MarshalText() ([]byte, error) {
 	buffer := &bytes.Buffer{}
 	err := CardTemplate.Execute(buffer, outputCard)
 	if err != nil {
-		return []byte{}, fmt.Errorf("failed to execute CardTemplate: %s", err)
+		return []byte{}, fmt.Errorf("failed to execute CardTemplate: %w", err)
 	}
 
 	return buffer.Bytes(), nil
@@ -123,7 +123,7 @@ func (card *Card) UnmarshalText(text []byte) error {
 				trimmedVersion := strings.TrimSpace(rawVersion)
 				value, err := strconv.ParseInt(trimmedVersion, 10, strconv.IntSize)
 				if err != nil {
-					return fmt.Errorf("failed to parse Version: %s", err)
+					return fmt.Errorf("failed to parse Version: %w", err)
 				}
 				version = int(value)
 
@@ -133,14 +133,14 @@ func (card *Card) UnmarshalText(text []byte) error {
 				trimmedValue := strings.TrimSpace(rawValue)
 				possibleZeroTime, err := time.Parse(dateLayout, trimmedValue)
 				if err != nil {
-					return fmt.Errorf("failed to parse LastReview as zero time: %s", err)
+					return fmt.Errorf("failed to parse LastReview as zero time: %w", err)
 				}
 				if possibleZeroTime.IsZero() {
 					value = possibleZeroTime
 				} else {
 					value, err = time.ParseInLocation(dateLayout, trimmedValue, time.Local)
 					if err != nil {
-						return fmt.Errorf("failed to parse LastReview: %s", err)
+						return fmt.Errorf("failed to parse LastReview: %w", err)
 					}
 				}
 				lastReview = value
@@ -150,7 +150,7 @@ func (card *Card) UnmarshalText(text []byte) error {
 				trimmedValue := strings.TrimSpace(rawValue)
 				value, err := time.ParseInLocation(dateLayout, trimmedValue, time.Local)
 				if err != nil {
-					return fmt.Errorf("failed to parse NextReview: %s", err)
+					return fmt.Errorf("failed to parse NextReview: %w", err)
 				}
 				nextReview = value
 
@@ -159,7 +159,7 @@ func (card *Card) UnmarshalText(text []byte) error {
 				trimmedValue := strings.TrimSpace(rawValue)
 				value, err := strconv.ParseBool(trimmedValue)
 				if err != nil {
-					return fmt.Errorf("failed to parse Active: %s", err)
+					return fmt.Errorf("failed to parse Active: %w", err)
 				}
 				active = value
 

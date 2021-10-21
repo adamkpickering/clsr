@@ -131,5 +131,5 @@ func getMultiplierFromRune(key rune) (float64, error) {
 	if ok {
 		return multiplier, nil
 	}
-	return 0.0, fmt.Errorf("invalid key \"%c\"", key)
+	return 0.0, fmt.Errorf(`invalid key "%c"`, key)
 }

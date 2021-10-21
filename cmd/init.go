@@ -39,7 +39,7 @@ data and/or configuration files that are required to make clsr work.`,
 		// create deck/ if it does not already exist
 		err := os.MkdirAll("decks", 0755)
 		if err != nil {
-			return fmt.Errorf("failed to create directory decks: %s", err)
+			return fmt.Errorf("failed to create directory decks: %w", err)
 		}
 		return nil
 	},

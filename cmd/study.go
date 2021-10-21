@@ -39,13 +39,13 @@ var studyCmd = &cobra.Command{
 		// get a DeckSource
 		deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
 		if err != nil {
-			return fmt.Errorf("failed to get DeckSource: %s", err)
+			return fmt.Errorf("failed to get DeckSource: %w", err)
 		}
 
 		// get a list of cards to study
 		deck, err := deckSource.LoadDeck(deckName)
 		if err != nil {
-			return fmt.Errorf("failed to load deck: %s", err)
+			return fmt.Errorf("failed to load deck: %w", err)
 		}
 		cardsToStudy := []*models.Card{}
 		for _, card := range deck.Cards {
@@ -57,11 +57,11 @@ var studyCmd = &cobra.Command{
 		// initialize tcell
 		screen, err := tcell.NewScreen()
 		if err != nil {
-			return fmt.Errorf("failed to instantiate Screen: %s", err)
+			return fmt.Errorf("failed to instantiate Screen: %w", err)
 		}
 		defer screen.Fini()
 		if err := screen.Init(); err != nil {
-			return fmt.Errorf("failed to initialize Screen: %s", err)
+			return fmt.Errorf("failed to initialize Screen: %w", err)
 		}
 
 		// study cards
@@ -71,13 +71,13 @@ var studyCmd = &cobra.Command{
 		}
 		err = ss.Run()
 		if err != nil && err != views.ErrExit {
-			return fmt.Errorf("problem while studying cards: %s", err)
+			return fmt.Errorf("problem while studying cards: %w", err)
 		}
 
 		// write the changes to the deck
 		err = deckSource.SyncDeck(deck)
 		if err != nil {
-			return fmt.Errorf("failed to sync studied deck \"%s\": %s", deck.Name, err)
+			return fmt.Errorf("failed to sync studied deck %q: %w", deck.Name, err)
 		}
 
 		return nil
