@@ -56,6 +56,7 @@ type Card struct {
 // From https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go
 func randomString(n int) string {
 	b := make([]byte, n)
+	rand.Seed(time.Now().UnixNano())
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
@@ -63,14 +64,9 @@ func randomString(n int) string {
 }
 
 func NewCard(question string, answer string) *Card {
-	// generate ID
-	rand.Seed(time.Now().UnixNano())
-	id := randomString(10)
-
-	// build card
 	year, month, day := time.Now().Date()
 	return &Card{
-		ID:         id,
+		ID:         randomString(10),
 		Version:    0,
 		LastReview: time.Time{},
 		NextReview: time.Date(year, month, day, 0, 0, 0, 0, time.Local),
