@@ -98,7 +98,6 @@ var createCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to parse user-input data: %s", err)
 			}
-			fmt.Printf("%#v", *card)
 
 			// add the card to the deck and sync the deck
 			deck.AddCard(card)
@@ -115,7 +114,7 @@ var createCmd = &cobra.Command{
 			}
 
 		default:
-			return fmt.Errorf("\"%s\" is not a valid resource type", resourceType)
+			return fmt.Errorf("%q is not a valid resource type", resourceType)
 		}
 
 		return nil

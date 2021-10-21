@@ -42,7 +42,7 @@ var listCmd = &cobra.Command{
 		case resourceType == "decks":
 			return listDecks()
 		default:
-			return fmt.Errorf("unrecognized resource \"%s\"", resourceType)
+			return fmt.Errorf("unrecognized resource %q", resourceType)
 		}
 	},
 }
@@ -83,7 +83,7 @@ func listDecks() error {
 	for _, deckName := range deckNames {
 		deck, err := deckSource.LoadDeck(deckName)
 		if err != nil {
-			return fmt.Errorf("failed to load deck \"%s\": %s", deckName, err)
+			return fmt.Errorf("failed to load deck %q: %s", deckName, err)
 		}
 		decks = append(decks, deck)
 	}
