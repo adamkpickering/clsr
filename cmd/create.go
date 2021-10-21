@@ -53,7 +53,7 @@ var createCmd = &cobra.Command{
 		// construct DeckSource
 		deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
 		if err != nil {
-			return fmt.Errorf("failed to construct DeckSource: %s", err)
+			return fmt.Errorf("failed to construct DeckSource: %w", err)
 		}
 
 		resourceType := args[0]
@@ -63,7 +63,7 @@ var createCmd = &cobra.Command{
 			// load the deck
 			deck, err := deckSource.LoadDeck(deckName)
 			if err != nil {
-				return fmt.Errorf("failed to load deck %s: %s", deckName, err)
+				return fmt.Errorf("failed to load deck %q: %w", deckName, err)
 			}
 
 			// build []byte to show to user in editor
@@ -71,17 +71,17 @@ var createCmd = &cobra.Command{
 			comment := `# The lines until the first "---" contain important ` +
 				"card metadata.\n# Edit them at your own risk.\n"
 			if _, err = initialText.WriteString(comment); err != nil {
-				return fmt.Errorf("failed to write comment to initial card text: %s", err)
+				return fmt.Errorf("failed to write comment to initial card text: %w", err)
 			}
 			question := "# Write the question here. All lines starting with # will be ignored."
 			answer := "# Write the answer here. All lines starting with # will be ignored."
 			card := models.NewCard(question, answer)
 			cardText, err := card.MarshalText()
 			if err != nil {
-				return fmt.Errorf("failed to marshal card: %s", err)
+				return fmt.Errorf("failed to marshal card: %w", err)
 			}
 			if _, err = initialText.Write(cardText); err != nil {
-				return fmt.Errorf("failed to write card to initial card text: %s", err)
+				return fmt.Errorf("failed to write card to initial card text: %w", err)
 			}
 
 			// exec into editor to allow user to input card fields
@@ -89,28 +89,28 @@ var createCmd = &cobra.Command{
 			if err == ErrNotModified {
 				return nil
 			} else if err != nil {
-				return fmt.Errorf("failed to get user input: %s", err)
+				return fmt.Errorf("failed to get user input: %w", err)
 			}
 
 			// parse the returned data into a card
 			card = &models.Card{}
 			err = card.UnmarshalText(userText)
 			if err != nil {
-				return fmt.Errorf("failed to parse user-input data: %s", err)
+				return fmt.Errorf("failed to parse user-input data: %w", err)
 			}
 
 			// add the card to the deck and sync the deck
 			deck.AddCard(card)
 			err = deckSource.SyncDeck(deck)
 			if err != nil {
-				return fmt.Errorf("failed to sync deck: %s", err)
+				return fmt.Errorf("failed to sync deck: %w", err)
 			}
 
 		case "deck":
 			// create the deck
 			_, err := deckSource.CreateDeck(deckName)
 			if err != nil {
-				return fmt.Errorf("failed to create deck %s: %s", deckName, err)
+				return fmt.Errorf("failed to create deck %q: %w", deckName, err)
 			}
 
 		default:
@@ -144,7 +144,7 @@ func getInterimCardFile(baseDir string, text []byte) (string, time.Time, error) 
 	// write interim file into the temporary directory
 	fd, err := os.CreateTemp(baseDir, "*.txt")
 	if err != nil {
-		return "", time.Time{}, fmt.Errorf("failed to open temporary file: %s", err)
+		return "", time.Time{}, fmt.Errorf("failed to open temporary file: %w", err)
 	}
 	defer fd.Close()
 	path := fd.Name()
@@ -152,13 +152,13 @@ func getInterimCardFile(baseDir string, text []byte) (string, time.Time, error) 
 	// write to file
 	_, err = fd.Write(text)
 	if err != nil {
-		return "", time.Time{}, fmt.Errorf("failed to write marshalled card: %s", err)
+		return "", time.Time{}, fmt.Errorf("failed to write marshalled card: %w", err)
 	}
 
 	// get last modified time of file
 	info, err := os.Stat(path)
 	if err != nil {
-		return "", time.Time{}, fmt.Errorf("failed to get temp file info: %s", err)
+		return "", time.Time{}, fmt.Errorf("failed to get temp file info: %w", err)
 	}
 	lastModified := info.ModTime()
 
@@ -185,14 +185,14 @@ func getInputFromUserViaEditor(initialText []byte) ([]byte, error) {
 	// create temporary directory
 	tempDir, err := os.MkdirTemp("", "")
 	if err != nil {
-		return []byte{}, fmt.Errorf("failed to create tempdir: %s", err)
+		return []byte{}, fmt.Errorf("failed to create tempdir: %w", err)
 	}
 	defer os.RemoveAll(tempDir)
 
 	// get interim file
 	path, firstModified, err := getInterimCardFile(tempDir, initialText)
 	if err != nil {
-		return []byte{}, fmt.Errorf("failed to create interim card file: %s", err)
+		return []byte{}, fmt.Errorf("failed to create interim card file: %w", err)
 	}
 
 	// call the user's editor to let them edit the card
@@ -201,19 +201,19 @@ func getInputFromUserViaEditor(initialText []byte) ([]byte, error) {
 	cmd.Stdout = os.Stdout
 	err = cmd.Run()
 	if err != nil {
-		return []byte{}, fmt.Errorf("editor command error: %s", err)
+		return []byte{}, fmt.Errorf("editor command error: %w", err)
 	}
 
 	// read what the user wrote in the file if they modified it
 	info, err := os.Stat(path)
 	if err != nil {
-		fmtString := "failed to get temp file info after potential write: %s"
+		fmtString := "failed to get temp file info after potential write: %w"
 		return []byte{}, fmt.Errorf(fmtString, err)
 	}
 	if info.ModTime().After(firstModified) {
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return []byte{}, fmt.Errorf("failed to read file: %s", err)
+			return []byte{}, fmt.Errorf("failed to read file: %w", err)
 		}
 		return data, nil
 	}

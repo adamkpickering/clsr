@@ -11,11 +11,11 @@ type Deck struct {
 	Cards []*Card
 }
 
-func NewDeck(path string) (*Deck, error) {
+func NewDeck(path string) *Deck {
 	deck := &Deck{
 		Name: filepath.Base(path),
 	}
-	return deck, nil
+	return deck
 }
 
 func (d *Deck) AddCard(card *Card) {
