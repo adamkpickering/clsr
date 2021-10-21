@@ -22,15 +22,18 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"time"
 
 	"github.com/adamkpickering/clsr/models"
 	"github.com/spf13/cobra"
 )
+
+var ErrNotModified error = errors.New("temporary file not modified")
 
 var deckName string
 
@@ -63,16 +66,42 @@ var createCmd = &cobra.Command{
 				return fmt.Errorf("failed to load deck %s: %s", deckName, err)
 			}
 
-			// create the card
-			card, err := getCardViaEditor()
+			// build []byte to show to user in editor
+			initialText := bytes.Buffer{}
+			comment := `# The lines until the first "---" contain important ` +
+				"card metadata.\n# Edit them at your own risk.\n"
+			if _, err = initialText.WriteString(comment); err != nil {
+				return fmt.Errorf("failed to write comment to initial card text: %s", err)
+			}
+			question := "# Write the question here. All lines starting with # will be ignored."
+			answer := "# Write the answer here. All lines starting with # will be ignored."
+			card := models.NewCard(question, answer)
+			cardText, err := card.MarshalText()
 			if err != nil {
-				return fmt.Errorf("failed to get card: %s", err)
+				return fmt.Errorf("failed to marshal card: %s", err)
+			}
+			if _, err = initialText.Write(cardText); err != nil {
+				return fmt.Errorf("failed to write card to initial card text: %s", err)
 			}
 
-			// add the card to the deck
-			deck.AddCard(card)
+			// exec into editor to allow user to input card fields
+			userText, err := getInputFromUserViaEditor(initialText.Bytes())
+			if err == ErrNotModified {
+				return nil
+			} else if err != nil {
+				return fmt.Errorf("failed to get user input: %s", err)
+			}
 
-			// sync the deck
+			// parse the returned data into a card
+			card = &models.Card{}
+			err = card.UnmarshalText(userText)
+			if err != nil {
+				return fmt.Errorf("failed to parse user-input data: %s", err)
+			}
+			fmt.Printf("%#v", *card)
+
+			// add the card to the deck and sync the deck
+			deck.AddCard(card)
 			err = deckSource.SyncDeck(deck)
 			if err != nil {
 				return fmt.Errorf("failed to sync deck: %s", err)
@@ -109,76 +138,85 @@ func init() {
 	createCmd.MarkFlagRequired("deck")
 }
 
-// Execs into the user's editor to allow them to fill a new card out with the
-// question and answer they want. Returns the card.
-func getCardViaEditor() (*models.Card, error) {
-	// create temporary directory
-	tempDir, err := os.MkdirTemp("", "clsr_")
+// Creates a temporary file that is filled with the data passed in text. Returns
+// the path to the file, as well as the time that the file was last modified.
+// Should be removed once you are finished with it.
+func getInterimCardFile(baseDir string, text []byte) (string, time.Time, error) {
+	// write interim file into the temporary directory
+	fd, err := os.CreateTemp(baseDir, "*.txt")
 	if err != nil {
-		return &models.Card{}, fmt.Errorf("failed to create tempdir: %s", err)
+		return "", time.Time{}, fmt.Errorf("failed to open temporary file: %s", err)
+	}
+	defer fd.Close()
+	path := fd.Name()
+
+	// write to file
+	_, err = fd.Write(text)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to write marshalled card: %s", err)
+	}
+
+	// get last modified time of file
+	info, err := os.Stat(path)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to get temp file info: %s", err)
+	}
+	lastModified := info.ModTime()
+
+	return path, lastModified, nil
+}
+
+// Returns the editor specified in the EDITOR env var. If EDITOR is not specified,
+// or has zero length, defaults to "nano".
+func getPreferredEditor() string {
+	value, ok := os.LookupEnv("EDITOR")
+	if ok && len(value) > 0 {
+		return value
+	}
+	return "nano"
+}
+
+// Execs into the user's chosen editor (specified by EDITOR env var,
+// default "nano") and allows them to make changes to a block of text.
+// The initial text that is displayed to the user is given by inputText.
+// The text that they have written is returned in the first argument.
+// If the user exits without writing any changes, error is set to
+// ErrNotModified.
+func getInputFromUserViaEditor(initialText []byte) ([]byte, error) {
+	// create temporary directory
+	tempDir, err := os.MkdirTemp("", "")
+	if err != nil {
+		return []byte{}, fmt.Errorf("failed to create tempdir: %s", err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	// get interim card file
-	cardPath, err := getInterimCardFile(tempDir)
+	// get interim file
+	path, firstModified, err := getInterimCardFile(tempDir, initialText)
 	if err != nil {
-		return &models.Card{}, fmt.Errorf("failed to create interim card file: %s", err)
+		return []byte{}, fmt.Errorf("failed to create interim card file: %s", err)
 	}
 
 	// call the user's editor to let them edit the card
-	cmd := exec.Command("vim", cardPath)
+	cmd := exec.Command(getPreferredEditor(), path)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	err = cmd.Run()
 	if err != nil {
-		return &models.Card{}, fmt.Errorf("editor command error: %s", err)
+		return []byte{}, fmt.Errorf("editor command error: %s", err)
 	}
 
-	// read what the user wrote in the file
-	data, err := os.ReadFile(cardPath)
+	// read what the user wrote in the file if they modified it
+	info, err := os.Stat(path)
 	if err != nil {
-		return &models.Card{}, fmt.Errorf("failed to read file: %s", err)
+		fmtString := "failed to get temp file info after potential write: %s"
+		return []byte{}, fmt.Errorf(fmtString, err)
 	}
-	card := &models.Card{}
-	err = card.UnmarshalText(data)
-	if err != nil {
-		return &models.Card{}, fmt.Errorf("failed to parse card: %s", err)
+	if info.ModTime().After(firstModified) {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return []byte{}, fmt.Errorf("failed to read file: %s", err)
+		}
+		return data, nil
 	}
-
-	return card, nil
-}
-
-// Returns the path to a file that is filled with a card template so that it
-// can be opened by the user, edited, and then read again to turn what
-// the user wrote into a valid Card object. Should be removed once you are
-// finished with it.
-func getInterimCardFile(baseDir string) (string, error) {
-	// get an interim card
-	question := "# Write the question here. All lines starting with # will be ignored."
-	answer := "# Write the answer here. All lines starting with # will be ignored."
-	card := models.NewCard(question, answer)
-
-	// get temporary file
-	cardPath := filepath.Join(baseDir, models.GetCardFilename(card))
-	fd, err := os.Create(cardPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to create temp card: %s", err)
-	}
-	defer fd.Close()
-
-	// write to file
-	comment := `# The lines until the first "---" contain important card metadata.
-# Edit them at your own risk.
-`
-	fd.Write([]byte(comment))
-	text, err := card.MarshalText()
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal card: %s", err)
-	}
-	_, err = fd.Write(text)
-	if err != nil {
-		return "", fmt.Errorf("failed to write marshalled card: %s", err)
-	}
-
-	return cardPath, nil
+	return []byte{}, ErrNotModified
 }
