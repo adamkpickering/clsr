@@ -22,7 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/adamkpickering/clsr/models"
@@ -43,18 +42,35 @@ var studyCmd = &cobra.Command{
 			return fmt.Errorf("failed to get DeckSource: %w", err)
 		}
 
+		// get a list of decks to work on
+		var decks []*models.Deck
+		if len(deckName) > 0 {
+			deck, err := deckSource.LoadDeck(deckName)
+			if err != nil {
+				return fmt.Errorf("failed to load deck %q: %w", deckName, err)
+			}
+			decks = append(decks, deck)
+		} else {
+			deckNames, err := deckSource.ListDecks()
+			if err != nil {
+				return fmt.Errorf("failed to get deck names: %w", err)
+			}
+			for _, deckName := range deckNames {
+				deck, err := deckSource.LoadDeck(deckName)
+				if err != nil {
+					return fmt.Errorf("failed to load deck %q: %w", deckName, err)
+				}
+				decks = append(decks, deck)
+			}
+		}
+
 		// get a list of cards to study
-		if len(deckName) == 0 {
-			return errors.New("--deck or -d is required for this command")
-		}
-		deck, err := deckSource.LoadDeck(deckName)
-		if err != nil {
-			return fmt.Errorf("failed to load deck: %w", err)
-		}
-		cardsToStudy := []*models.Card{}
-		for _, card := range deck.Cards {
-			if card.IsDue() && card.Active {
-				cardsToStudy = append(cardsToStudy, card)
+		var cardsToStudy []*models.Card
+		for _, deck := range decks {
+			for _, card := range deck.Cards {
+				if card.IsDue() && card.Active {
+					cardsToStudy = append(cardsToStudy, card)
+				}
 			}
 		}
 
@@ -79,9 +95,11 @@ var studyCmd = &cobra.Command{
 		}
 
 		// write the changes to the deck
-		err = deckSource.SyncDeck(deck)
-		if err != nil {
-			return fmt.Errorf("failed to sync studied deck %q: %w", deck.Name, err)
+		for _, deck := range decks {
+			err = deckSource.SyncDeck(deck)
+			if err != nil {
+				return fmt.Errorf("failed to sync studied deck %q: %w", deck.Name, err)
+			}
 		}
 
 		return nil

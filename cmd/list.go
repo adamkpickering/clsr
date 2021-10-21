@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/adamkpickering/clsr/models"
 	"github.com/alexeyco/simpletable"
@@ -62,30 +61,16 @@ func init() {
 }
 
 func listDecks() error {
-	// get list of deck names
-	entries, err := os.ReadDir(deckDirectory)
-	if err != nil {
-		return fmt.Errorf("failed to read deck directory: %w", err)
-	}
-	deckNames := []string{}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			deckNames = append(deckNames, entry.Name())
-		}
-	}
-
-	// load decks
+	// get DeckSource
 	deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
 	if err != nil {
 		return fmt.Errorf("failed to instantiate DeckSource: %w", err)
 	}
-	decks := []*models.Deck{}
-	for _, deckName := range deckNames {
-		deck, err := deckSource.LoadDeck(deckName)
-		if err != nil {
-			return fmt.Errorf("failed to load deck %q: %w", deckName, err)
-		}
-		decks = append(decks, deck)
+
+	// get all decks
+	decks, err := getAllDecks(deckSource)
+	if err != nil {
+		return fmt.Errorf("failed to get decks: %w", err)
 	}
 
 	// display decks in table

@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/adamkpickering/clsr/models"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
@@ -94,4 +95,24 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
+}
+
+func getAllDecks(deckSource models.DeckSource) ([]*models.Deck, error) {
+	// get list of deck names
+	deckNames, err := deckSource.ListDecks()
+	if err != nil {
+		return []*models.Deck{}, fmt.Errorf("failed to get deck names: %w", err)
+	}
+
+	// load decks
+	decks := []*models.Deck{}
+	for _, deckName := range deckNames {
+		deck, err := deckSource.LoadDeck(deckName)
+		if err != nil {
+			return []*models.Deck{}, fmt.Errorf("failed to load deck %q: %w", deckName, err)
+		}
+		decks = append(decks, deck)
+	}
+
+	return decks, nil
 }
