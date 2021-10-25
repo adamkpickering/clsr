@@ -250,3 +250,16 @@ func TestHonorComments(t *testing.T) {
 		t.Errorf(fmtString, parsedCard.Answer, answerContent)
 	}
 }
+
+func TestDaysUntilDue(t *testing.T) {
+	testCases := []int{-4, -1, 0, 1, 5}
+	for _, testCase := range testCases {
+		year, month, day := time.Now().Date()
+		today := time.Date(year, month, day, 0, 0, 0, 0, time.Local)
+		card := NewCard("fake question", "fake answer")
+		card.NextReview = today.AddDate(0, 0, testCase)
+		if due := card.DaysUntilDue(); due != testCase {
+			t.Errorf("Got %d days until due (%d expected)", due, testCase)
+		}
+	}
+}
