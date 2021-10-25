@@ -129,6 +129,7 @@ func (deckSource FlatFileDeckSource) SyncDeck(deck *Deck) error {
 			if err != nil {
 				return fmt.Errorf("failed to write card %q", card.ID)
 			}
+			card.Modified = false
 		}
 	}
 
