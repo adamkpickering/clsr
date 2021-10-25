@@ -49,6 +49,7 @@ type Card struct {
 	Active     bool
 	Question   string
 	Answer     string
+	Modified   bool
 }
 
 // Returns a string of length n that is comprised of random letters
@@ -73,6 +74,7 @@ func NewCard(question string, answer string) *Card {
 		Question:   question,
 		Answer:     answer,
 		Active:     true,
+		Modified:   true,
 	}
 }
 
@@ -231,6 +233,7 @@ func (card *Card) SetNextReview(multiplier float64) {
 	// set new last review and new next review
 	card.LastReview = time.Now().Truncate(24 * time.Hour)
 	card.NextReview = card.LastReview.AddDate(0, 0, newInterval)
+	card.Modified = true
 }
 
 func (card *Card) IsDue() bool {

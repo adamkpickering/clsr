@@ -1,9 +1,5 @@
 package models
 
-import (
-	"path/filepath"
-)
-
 // A Deck is a collection of Cards. It is persisted to the filesystem
 // as a directory containing files that represent its Cards.
 type Deck struct {
@@ -11,9 +7,9 @@ type Deck struct {
 	Cards []*Card
 }
 
-func NewDeck(path string) *Deck {
+func NewDeck(name string) *Deck {
 	deck := &Deck{
-		Name: filepath.Base(path),
+		Name: name,
 	}
 	return deck
 }

@@ -61,6 +61,7 @@ good job`
 func TestCardWriteRead(t *testing.T) {
 	tempdir := t.TempDir()
 	oldCard := NewCard("fake question", "fake answer")
+	oldCard.Modified = false
 	cardPath := filepath.Join(tempdir, GetCardFilename(oldCard))
 	err := WriteCardToFile(cardPath, oldCard)
 	if err != nil {

@@ -123,10 +123,13 @@ func (deckSource FlatFileDeckSource) SyncDeck(deck *Deck) error {
 
 	// write remaining cards
 	for _, card := range deck.Cards {
-		cardPath := filepath.Join(deckPath, GetCardFilename(card))
-		err := WriteCardToFile(cardPath, card)
-		if err != nil {
-			return fmt.Errorf("failed to write card %q", card.ID)
+		if card.Modified {
+			cardPath := filepath.Join(deckPath, GetCardFilename(card))
+			err := WriteCardToFile(cardPath, card)
+			if err != nil {
+				return fmt.Errorf("failed to write card %q", card.ID)
+			}
+			card.Modified = false
 		}
 	}
 
