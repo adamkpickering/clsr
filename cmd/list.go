@@ -37,8 +37,10 @@ var listCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		resourceType := args[0]
-		switch {
-		case resourceType == "decks":
+		switch resourceType {
+		case "cards":
+			return listCards()
+		case "decks":
 			return listDecks()
 		default:
 			return fmt.Errorf("unrecognized resource %q", resourceType)
@@ -58,6 +60,70 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// listCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func listCards() error {
+	// get a DeckSource
+	deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
+	if err != nil {
+		return fmt.Errorf("failed to get DeckSource: %w", err)
+	}
+
+	// get a list of decks
+	var decks []*models.Deck
+	if len(deckName) > 0 {
+		deck, err := deckSource.LoadDeck(deckName)
+		if err != nil {
+			return fmt.Errorf("failed to load deck %q: %w", deckName, err)
+		}
+		decks = append(decks, deck)
+	} else {
+		deckNames, err := deckSource.ListDecks()
+		if err != nil {
+			return fmt.Errorf("failed to get deck names: %w", err)
+		}
+		for _, deckName := range deckNames {
+			deck, err := deckSource.LoadDeck(deckName)
+			if err != nil {
+				return fmt.Errorf("failed to load deck %q: %w", deckName, err)
+			}
+			decks = append(decks, deck)
+		}
+	}
+
+	// get a list of cards
+	var cards []*models.Card
+	for _, deck := range decks {
+		for _, card := range deck.Cards {
+			cards = append(cards, card)
+		}
+	}
+
+	// display cards in table
+	table := simpletable.New()
+	table.SetStyle(simpletable.StyleCompactClassic)
+	table.Header = &simpletable.Header{
+		Cells: []*simpletable.Cell{
+			{Text: "ID"},
+			{Text: "Active"},
+			{Text: "Last Reviewed"},
+			{Text: "Next Review"},
+			{Text: "Due"},
+		},
+	}
+	for _, card := range cards {
+		row := []*simpletable.Cell{
+			{Text: card.ID},
+			{Text: fmt.Sprintf("%t", card.Active)},
+			{Text: card.LastReview.Format(models.DateLayout)},
+			{Text: card.NextReview.Format(models.DateLayout)},
+			{Text: fmt.Sprintf("%d", card.DaysUntilDue())},
+		}
+		table.Body.Cells = append(table.Body.Cells, row)
+	}
+	fmt.Println(table.String())
+
+	return nil
 }
 
 func listDecks() error {

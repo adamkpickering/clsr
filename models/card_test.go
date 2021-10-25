@@ -45,7 +45,7 @@ good job`
 		Question:   question,
 		Answer:     answer,
 	}
-	data := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(dateLayout), inputCard.NextReview.Format(dateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
+	data := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(DateLayout), inputCard.NextReview.Format(DateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
 	parsedCard := &Card{}
 	err := parsedCard.UnmarshalText([]byte(data))
 	if err != nil {
@@ -233,7 +233,7 @@ func TestHonorComments(t *testing.T) {
 	answerContent := "this is the actual answer"
 	answer := answerComment + "\n" + answerContent
 	inputCard := NewCard(question, answer)
-	inputCardString := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(dateLayout), inputCard.NextReview.Format(dateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
+	inputCardString := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(DateLayout), inputCard.NextReview.Format(DateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
 
 	// parse the card and ensure that comments are not there
 	parsedCard := &Card{}
