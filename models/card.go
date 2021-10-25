@@ -49,6 +49,7 @@ type Card struct {
 	Active     bool
 	Question   string
 	Answer     string
+	Modified   bool
 }
 
 // Returns a string of length n that is comprised of random letters
