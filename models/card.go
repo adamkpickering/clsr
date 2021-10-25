@@ -74,6 +74,7 @@ func NewCard(question string, answer string) *Card {
 		Question:   question,
 		Answer:     answer,
 		Active:     true,
+		Modified:   true,
 	}
 }
 
@@ -232,6 +233,7 @@ func (card *Card) SetNextReview(multiplier float64) {
 	// set new last review and new next review
 	card.LastReview = time.Now().Truncate(24 * time.Hour)
 	card.NextReview = card.LastReview.AddDate(0, 0, newInterval)
+	card.Modified = true
 }
 
 func (card *Card) IsDue() bool {
