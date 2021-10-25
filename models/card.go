@@ -21,7 +21,7 @@ const (
 
 const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
 
-const dateLayout = "2006-01-02"
+const DateLayout = "2006-01-02"
 
 var idRegex *regexp.Regexp
 var versionRegex *regexp.Regexp
@@ -81,8 +81,8 @@ func (card *Card) MarshalText() ([]byte, error) {
 	outputCard := map[string]string{}
 	outputCard["ID"] = card.ID
 	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
-	outputCard["LastReview"] = card.LastReview.Format(dateLayout)
-	outputCard["NextReview"] = card.NextReview.Format(dateLayout)
+	outputCard["LastReview"] = card.LastReview.Format(DateLayout)
+	outputCard["NextReview"] = card.NextReview.Format(DateLayout)
 	outputCard["Active"] = fmt.Sprintf("%t", card.Active)
 	outputCard["Question"] = card.Question
 	outputCard["Answer"] = card.Answer
@@ -131,14 +131,14 @@ func (card *Card) UnmarshalText(text []byte) error {
 				var value time.Time
 				rawValue := strings.Split(line, "=")[1]
 				trimmedValue := strings.TrimSpace(rawValue)
-				possibleZeroTime, err := time.Parse(dateLayout, trimmedValue)
+				possibleZeroTime, err := time.Parse(DateLayout, trimmedValue)
 				if err != nil {
 					return fmt.Errorf("failed to parse LastReview as zero time: %w", err)
 				}
 				if possibleZeroTime.IsZero() {
 					value = possibleZeroTime
 				} else {
-					value, err = time.ParseInLocation(dateLayout, trimmedValue, time.Local)
+					value, err = time.ParseInLocation(DateLayout, trimmedValue, time.Local)
 					if err != nil {
 						return fmt.Errorf("failed to parse LastReview: %w", err)
 					}
@@ -148,7 +148,7 @@ func (card *Card) UnmarshalText(text []byte) error {
 			} else if nextReviewRegex.MatchString(line) {
 				rawValue := strings.Split(line, "=")[1]
 				trimmedValue := strings.TrimSpace(rawValue)
-				value, err := time.ParseInLocation(dateLayout, trimmedValue, time.Local)
+				value, err := time.ParseInLocation(DateLayout, trimmedValue, time.Local)
 				if err != nil {
 					return fmt.Errorf("failed to parse NextReview: %w", err)
 				}
@@ -235,4 +235,12 @@ func (card *Card) SetNextReview(multiplier float64) {
 
 func (card *Card) IsDue() bool {
 	return card.NextReview.Before(time.Now())
+}
+
+func (card *Card) DaysUntilDue() int {
+	year, month, day := time.Now().Date()
+	today := time.Date(year, month, day, 0, 0, 0, 0, time.Local)
+	timeUntilDue := card.NextReview.Sub(today)
+	daysUntilDue := int(timeUntilDue / (24 * time.Hour))
+	return daysUntilDue
 }

@@ -55,6 +55,9 @@ There are two states for cards: "active", and "inactive".
 		}
 
 		// get deck
+		if len(deckName) == 0 {
+			return errors.New("must specify --deck/-d")
+		}
 		deck, err := deckSource.LoadDeck(deckName)
 		if err != nil {
 			return fmt.Errorf("failed to load deck %q: %w", deckName, err)
@@ -115,6 +118,4 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// setCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	setCmd.Flags().StringVarP(&deckName, "deck", "d", "", "the deck to work on")
-	setCmd.MarkFlagRequired("deck")
 }

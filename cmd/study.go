@@ -42,15 +42,35 @@ var studyCmd = &cobra.Command{
 			return fmt.Errorf("failed to get DeckSource: %w", err)
 		}
 
-		// get a list of cards to study
-		deck, err := deckSource.LoadDeck(deckName)
-		if err != nil {
-			return fmt.Errorf("failed to load deck: %w", err)
+		// get a list of decks to work on
+		var decks []*models.Deck
+		if len(deckName) > 0 {
+			deck, err := deckSource.LoadDeck(deckName)
+			if err != nil {
+				return fmt.Errorf("failed to load deck %q: %w", deckName, err)
+			}
+			decks = append(decks, deck)
+		} else {
+			deckNames, err := deckSource.ListDecks()
+			if err != nil {
+				return fmt.Errorf("failed to get deck names: %w", err)
+			}
+			for _, deckName := range deckNames {
+				deck, err := deckSource.LoadDeck(deckName)
+				if err != nil {
+					return fmt.Errorf("failed to load deck %q: %w", deckName, err)
+				}
+				decks = append(decks, deck)
+			}
 		}
-		cardsToStudy := []*models.Card{}
-		for _, card := range deck.Cards {
-			if card.IsDue() && card.Active {
-				cardsToStudy = append(cardsToStudy, card)
+
+		// get a list of cards to study
+		var cardsToStudy []*models.Card
+		for _, deck := range decks {
+			for _, card := range deck.Cards {
+				if card.IsDue() && card.Active {
+					cardsToStudy = append(cardsToStudy, card)
+				}
 			}
 		}
 
@@ -75,9 +95,11 @@ var studyCmd = &cobra.Command{
 		}
 
 		// write the changes to the deck
-		err = deckSource.SyncDeck(deck)
-		if err != nil {
-			return fmt.Errorf("failed to sync studied deck %q: %w", deck.Name, err)
+		for _, deck := range decks {
+			err = deckSource.SyncDeck(deck)
+			if err != nil {
+				return fmt.Errorf("failed to sync studied deck %q: %w", deck.Name, err)
+			}
 		}
 
 		return nil
@@ -96,6 +118,4 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// studyCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	studyCmd.Flags().StringVarP(&deckName, "deck", "d", "", "the deck to study")
-	studyCmd.MarkFlagRequired("deck")
 }

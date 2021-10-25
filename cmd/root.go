@@ -25,12 +25,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/adamkpickering/clsr/models"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
 )
 
 const deckDirectory string = "decks"
+
+var deckName string
 
 var cfgFile string
 
@@ -64,7 +67,10 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.clsr.yaml)")
+	configHelp := "config file (default is $HOME/.clsr.yaml)"
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", configHelp)
+	deckHelp := "the deck to act on, if applicable"
+	rootCmd.PersistentFlags().StringVarP(&deckName, "deck", "d", "", deckHelp)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -89,4 +95,24 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
+}
+
+func getAllDecks(deckSource models.DeckSource) ([]*models.Deck, error) {
+	// get list of deck names
+	deckNames, err := deckSource.ListDecks()
+	if err != nil {
+		return []*models.Deck{}, fmt.Errorf("failed to get deck names: %w", err)
+	}
+
+	// load decks
+	decks := []*models.Deck{}
+	for _, deckName := range deckNames {
+		deck, err := deckSource.LoadDeck(deckName)
+		if err != nil {
+			return []*models.Deck{}, fmt.Errorf("failed to load deck %q: %w", deckName, err)
+		}
+		decks = append(decks, deck)
+	}
+
+	return decks, nil
 }

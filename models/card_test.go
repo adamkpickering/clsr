@@ -45,7 +45,7 @@ good job`
 		Question:   question,
 		Answer:     answer,
 	}
-	data := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(dateLayout), inputCard.NextReview.Format(dateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
+	data := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(DateLayout), inputCard.NextReview.Format(DateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
 	parsedCard := &Card{}
 	err := parsedCard.UnmarshalText([]byte(data))
 	if err != nil {
@@ -233,7 +233,7 @@ func TestHonorComments(t *testing.T) {
 	answerContent := "this is the actual answer"
 	answer := answerComment + "\n" + answerContent
 	inputCard := NewCard(question, answer)
-	inputCardString := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(dateLayout), inputCard.NextReview.Format(dateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
+	inputCardString := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(DateLayout), inputCard.NextReview.Format(DateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
 
 	// parse the card and ensure that comments are not there
 	parsedCard := &Card{}
@@ -248,5 +248,18 @@ func TestHonorComments(t *testing.T) {
 	if parsedCard.Answer != answerContent {
 		fmtString := "parsed card answer %q does not match expected (%q)"
 		t.Errorf(fmtString, parsedCard.Answer, answerContent)
+	}
+}
+
+func TestDaysUntilDue(t *testing.T) {
+	testCases := []int{-4, -1, 0, 1, 5}
+	for _, testCase := range testCases {
+		year, month, day := time.Now().Date()
+		today := time.Date(year, month, day, 0, 0, 0, 0, time.Local)
+		card := NewCard("fake question", "fake answer")
+		card.NextReview = today.AddDate(0, 0, testCase)
+		if due := card.DaysUntilDue(); due != testCase {
+			t.Errorf("Got %d days until due (%d expected)", due, testCase)
+		}
 	}
 }
