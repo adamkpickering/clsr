@@ -48,12 +48,7 @@ func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) 
 	for {
 		// render screen
 		ss.Screen.Clear()
-		switch state {
-		case questionState:
-			ss.renderQuestionOnly(card, totalCards, cardNumber)
-		case questionAndAnswerState:
-			ss.renderQuestionAndAnswer(card, totalCards, cardNumber)
-		}
+		ss.render(card, state, totalCards, cardNumber)
 		ss.Screen.Show()
 
 		// poll for event and act on it
@@ -108,84 +103,61 @@ func (ss StudySession) processString(rawString string) []string {
 	return stringLines
 }
 
-func (ss StudySession) renderQuestionOnly(card *models.Card, totalCards, cardNumber int) {
+func (ss StudySession) render(card *models.Card, state studyState, totalCards, cardNumber int) {
 	var lines []string
 
 	// add the status line
-	lines = append(lines, getStatusLine(cardNumber, totalCards, card.Deck, card.ID))
+	statusFmtString := " Card %d/%d\t\t\tDeck: %s\t\t\tID: %s"
+	statusLine := fmt.Sprintf(statusFmtString, cardNumber, totalCards, card.Deck, card.ID)
+	lines = append(lines, statusLine)
 	lines = append(lines, "")
 
-	// add question
-	for _, questionLine := range ss.processString(card.Question) {
-		lines = append(lines, " "+questionLine)
-	}
-
-	// add controls lines
-	controlsLines := []string{
-		"",
-		"",
-		" <space>/<enter>: show answer",
-		" <i>: set card to inactive",
-		" <ctrl-C>/<escape>: save studied cards & exit",
-	}
-	for _, controlsLine := range controlsLines {
-		lines = append(lines, controlsLine)
-	}
-
-	// print to screen
-	for lineIndex, line := range lines {
-		for i, runeValue := range line {
-			ss.Screen.SetContent(i, lineIndex, runeValue, nil, StyleDefault)
-		}
-	}
-}
-
-func (ss StudySession) renderQuestionAndAnswer(card *models.Card, totalCards, cardNumber int) {
-	var lines []string
-
-	// add the status line
-	lines = append(lines, getStatusLine(cardNumber, totalCards, card.Deck, card.ID))
-	lines = append(lines, "")
-
-	// build lines var, which represents lines to print to screen
+	// add question, divider and (maybe) answer
 	for _, questionLine := range ss.processString(card.Question) {
 		lines = append(lines, " "+questionLine)
 	}
 	lines = append(lines, "\n")
 	lines = append(lines, " ------")
 	lines = append(lines, "\n")
-	for _, answerLine := range ss.processString(card.Answer) {
-		lines = append(lines, " "+answerLine)
+	switch state {
+	case questionState:
+		for i := 0; i < len(ss.processString(card.Answer)); i++ {
+			lines = append(lines, "")
+		}
+	case questionAndAnswerState:
+		for _, answerLine := range ss.processString(card.Answer) {
+			lines = append(lines, " "+answerLine)
+		}
 	}
 
 	// add controls lines
-	failedMultiplier, _ := getMultiplierFromRune(failedKey)
-	failed := card.GetMultipliedReviewInterval(failedMultiplier)
-	hardMultiplier, _ := getMultiplierFromRune(hardKey)
-	hard := card.GetMultipliedReviewInterval(hardMultiplier)
-	normalMultiplier, _ := getMultiplierFromRune(normalKey)
-	normal := card.GetMultipliedReviewInterval(normalMultiplier)
-	easyMultiplier, _ := getMultiplierFromRune(easyKey)
-	easy := card.GetMultipliedReviewInterval(easyMultiplier)
-	keyLineFmt := " <%c>: failed (%dd)\t\t <%c>: hard (%dd)\t\t" +
-		"<%c>: normal (%dd)\t\t<%c>: easy (%dd)"
-	keyLine := fmt.Sprintf(
-		keyLineFmt,
-		failedKey, failed,
-		hardKey, hard,
-		normalKey, normal,
-		easyKey, easy,
-	)
-	controlsLines := []string{
-		"",
-		"",
-		keyLine,
-		" <i>: set card to inactive",
-		" <ctrl-C>/<escape>: save studied cards & exit",
+	lines = append(lines, "")
+	lines = append(lines, "")
+	switch state {
+	case questionState:
+		lines = append(lines, " <space>/<enter>: show answer")
+	case questionAndAnswerState:
+		failedMultiplier, _ := getMultiplierFromRune(failedKey)
+		failed := card.GetMultipliedReviewInterval(failedMultiplier)
+		hardMultiplier, _ := getMultiplierFromRune(hardKey)
+		hard := card.GetMultipliedReviewInterval(hardMultiplier)
+		normalMultiplier, _ := getMultiplierFromRune(normalKey)
+		normal := card.GetMultipliedReviewInterval(normalMultiplier)
+		easyMultiplier, _ := getMultiplierFromRune(easyKey)
+		easy := card.GetMultipliedReviewInterval(easyMultiplier)
+		keyLineFmt := " <%c>: failed (%dd)\t\t <%c>: hard (%dd)\t\t" +
+			"<%c>: normal (%dd)\t\t<%c>: easy (%dd)"
+		keyLine := fmt.Sprintf(
+			keyLineFmt,
+			failedKey, failed,
+			hardKey, hard,
+			normalKey, normal,
+			easyKey, easy,
+		)
+		lines = append(lines, keyLine)
 	}
-	for _, controlsLine := range controlsLines {
-		lines = append(lines, controlsLine)
-	}
+	lines = append(lines, " <i>: set card to inactive")
+	lines = append(lines, " <ctrl-C>/<escape>: save studied cards & exit")
 
 	// print to screen
 	for lineIndex, line := range lines {
@@ -193,12 +165,6 @@ func (ss StudySession) renderQuestionAndAnswer(card *models.Card, totalCards, ca
 			ss.Screen.SetContent(i, lineIndex, runeValue, nil, StyleDefault)
 		}
 	}
-}
-
-func getStatusLine(cardNumber, totalCards int, deckName, cardID string) string {
-	statusFmtString := " Card %d/%d\t\t\tDeck: %s\t\t\tID: %s"
-	statusLine := fmt.Sprintf(statusFmtString, cardNumber, totalCards, deckName, cardID)
-	return statusLine
 }
 
 func getMultiplierFromRune(key rune) (float64, error) {
