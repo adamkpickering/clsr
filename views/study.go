@@ -26,8 +26,9 @@ type StudySession struct {
 }
 
 func (ss StudySession) Run() error {
-	for _, card := range ss.Cards {
-		err := ss.studyCard(card)
+	totalCards := len(ss.Cards)
+	for i, card := range ss.Cards {
+		err := ss.studyCard(card, totalCards, i+1)
 		if err != nil {
 			return err
 		}
@@ -35,16 +36,16 @@ func (ss StudySession) Run() error {
 	return nil
 }
 
-func (ss StudySession) studyCard(card *models.Card) error {
+func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) error {
 	state := questionState
 	for {
 		// render screen
 		ss.Screen.Clear()
 		switch state {
 		case questionState:
-			ss.renderQuestionOnly(card)
+			ss.renderQuestionOnly(card, totalCards, cardNumber)
 		case questionAndAnswerState:
-			ss.renderQuestionAndAnswer(card)
+			ss.renderQuestionAndAnswer(card, totalCards, cardNumber)
 		}
 		ss.Screen.Show()
 
@@ -100,8 +101,19 @@ func (ss StudySession) processString(rawString string) []string {
 	return stringLines
 }
 
-func (ss StudySession) renderQuestionOnly(card *models.Card) {
-	lines := ss.processString(card.Question)
+func (ss StudySession) renderQuestionOnly(card *models.Card, totalCards, cardNumber int) {
+	var lines []string
+
+	// add the status line
+	lines = append(lines, getStatusLine(cardNumber, totalCards, card.Deck, card.ID))
+	lines = append(lines, "")
+
+	// add question
+	for _, questionLine := range ss.processString(card.Question) {
+		lines = append(lines, questionLine)
+	}
+
+	// print to screen
 	for lineIndex, line := range lines {
 		for i, runeValue := range line {
 			ss.Screen.SetContent(i, lineIndex, runeValue, nil, StyleDefault)
@@ -109,9 +121,14 @@ func (ss StudySession) renderQuestionOnly(card *models.Card) {
 	}
 }
 
-func (ss StudySession) renderQuestionAndAnswer(card *models.Card) {
+func (ss StudySession) renderQuestionAndAnswer(card *models.Card, totalCards, cardNumber int) {
+	var lines []string
+
+	// add the status line
+	lines = append(lines, getStatusLine(cardNumber, totalCards, card.Deck, card.ID))
+	lines = append(lines, "")
+
 	// build lines var, which represents lines to print to screen
-	lines := []string{}
 	for _, questionLine := range ss.processString(card.Question) {
 		lines = append(lines, questionLine)
 	}
@@ -128,6 +145,12 @@ func (ss StudySession) renderQuestionAndAnswer(card *models.Card) {
 			ss.Screen.SetContent(i, lineIndex, runeValue, nil, StyleDefault)
 		}
 	}
+}
+
+func getStatusLine(cardNumber, totalCards int, deckName, cardID string) string {
+	statusFmtString := " Card %d/%d\t\t\tDeck: %s\t\t\tID: %s"
+	statusLine := fmt.Sprintf(statusFmtString, cardNumber, totalCards, deckName, cardID)
+	return statusLine
 }
 
 func getMultiplierFromRune(key rune) (float64, error) {
