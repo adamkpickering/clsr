@@ -61,40 +61,38 @@ func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) 
 			ss.Screen.Sync()
 		case *tcell.EventKey:
 			key := event.Key()
+			var keyRune rune
+			if key == tcell.KeyRune {
+				keyRune = event.Rune()
+			}
 
 			// allow user to exit cleanly and prematurely
-			if key == tcell.KeyEscape || key == tcell.KeyCtrlC {
+			if key == tcell.KeyEscape || key == tcell.KeyCtrlC || keyRune == 'q' {
 				return ErrExit
 			}
 
 			// handle different keys depending on different states
 			switch state {
 			case questionState:
-				if key == tcell.KeyRune {
-					keyRune := event.Rune()
-					if keyRune == 'i' {
-						card.Active = false
-						card.Modified = true
-						return nil
-					} else if key == tcell.KeyEnter || keyRune == ' ' {
-						state = questionAndAnswerState
-					}
+				if keyRune == 'i' {
+					card.Active = false
+					card.Modified = true
+					return nil
+				} else if key == tcell.KeyEnter || keyRune == ' ' {
+					state = questionAndAnswerState
 				}
 			case questionAndAnswerState:
-				if key == tcell.KeyRune {
-					keyRune := event.Rune()
-					if keyRune == 'i' {
-						card.Active = false
-						card.Modified = true
-						return nil
-					}
-					multiplier, err := getMultiplierFromRune(keyRune)
-					if err != nil {
-						continue
-					}
-					card.SetNextReview(multiplier)
+				if keyRune == 'i' {
+					card.Active = false
+					card.Modified = true
 					return nil
 				}
+				multiplier, err := getMultiplierFromRune(keyRune)
+				if err != nil {
+					continue
+				}
+				card.SetNextReview(multiplier)
+				return nil
 			}
 		}
 	}
@@ -160,7 +158,7 @@ func (ss StudySession) render(card *models.Card, state studyState, totalCards, c
 		lines = append(lines, keyLine)
 	}
 	lines = append(lines, " <i>: set card to inactive")
-	lines = append(lines, " <ctrl-C>/<escape>: save studied cards & exit")
+	lines = append(lines, " <ctrl-C>/<escape>/<q>: save studied cards & exit")
 
 	// print to screen
 	if _, height := ss.Screen.Size(); len(lines) > height {
