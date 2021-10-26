@@ -20,14 +20,22 @@ const (
 	questionAndAnswerState
 )
 
+const (
+	failedKey rune = '1'
+	hardKey   rune = '2'
+	normalKey rune = '3'
+	easyKey   rune = '4'
+)
+
 type StudySession struct {
 	Screen tcell.Screen
 	Cards  []*models.Card
 }
 
 func (ss StudySession) Run() error {
-	for _, card := range ss.Cards {
-		err := ss.studyCard(card)
+	totalCards := len(ss.Cards)
+	for i, card := range ss.Cards {
+		err := ss.studyCard(card, totalCards, i+1)
 		if err != nil {
 			return err
 		}
@@ -35,16 +43,14 @@ func (ss StudySession) Run() error {
 	return nil
 }
 
-func (ss StudySession) studyCard(card *models.Card) error {
+func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) error {
 	state := questionState
 	for {
 		// render screen
 		ss.Screen.Clear()
-		switch state {
-		case questionState:
-			ss.renderQuestionOnly(card)
-		case questionAndAnswerState:
-			ss.renderQuestionAndAnswer(card)
+		err := ss.render(card, state, totalCards, cardNumber)
+		if err != nil {
+			return err
 		}
 		ss.Screen.Show()
 
@@ -55,35 +61,38 @@ func (ss StudySession) studyCard(card *models.Card) error {
 			ss.Screen.Sync()
 		case *tcell.EventKey:
 			key := event.Key()
+			var keyRune rune
+			if key == tcell.KeyRune {
+				keyRune = event.Rune()
+			}
 
 			// allow user to exit cleanly and prematurely
-			if key == tcell.KeyEscape || key == tcell.KeyCtrlC {
+			if key == tcell.KeyEscape || key == tcell.KeyCtrlC || keyRune == 'q' {
 				return ErrExit
 			}
 
 			// handle different keys depending on different states
 			switch state {
 			case questionState:
-				if key == tcell.KeyRune {
-					keyRune := event.Rune()
-					if keyRune == 'i' {
-						card.Active = false
-						card.Modified = true
-						return nil
-					} else if key == tcell.KeyEnter || keyRune == ' ' {
-						state = questionAndAnswerState
-					}
+				if keyRune == 'i' {
+					card.Active = false
+					card.Modified = true
+					return nil
+				} else if key == tcell.KeyEnter || keyRune == ' ' {
+					state = questionAndAnswerState
 				}
 			case questionAndAnswerState:
-				if key == tcell.KeyRune {
-					keyRune := event.Rune()
-					multiplier, err := getMultiplierFromRune(keyRune)
-					if err != nil {
-						continue
-					}
-					card.SetNextReview(multiplier)
+				if keyRune == 'i' {
+					card.Active = false
+					card.Modified = true
 					return nil
 				}
+				multiplier, err := getMultiplierFromRune(keyRune)
+				if err != nil {
+					continue
+				}
+				card.SetNextReview(multiplier)
+				return nil
 			}
 		}
 	}
@@ -95,46 +104,85 @@ func (ss StudySession) processString(rawString string) []string {
 	return stringLines
 }
 
-func (ss StudySession) renderQuestionOnly(card *models.Card) {
-	lines := ss.processString(card.Question)
-	for lineIndex, line := range lines {
-		for i, runeValue := range line {
-			ss.Screen.SetContent(i, lineIndex, runeValue, nil, StyleDefault)
+func (ss StudySession) render(card *models.Card, state studyState, totalCards, cardNumber int) error {
+	var lines []string
+
+	// add the status line
+	statusFmtString := " Card %d/%d\t\t\tDeck: %s\t\t\tID: %s"
+	statusLine := fmt.Sprintf(statusFmtString, cardNumber, totalCards, card.Deck, card.ID)
+	lines = append(lines, statusLine)
+	lines = append(lines, "")
+
+	// add question, divider and (maybe) answer
+	for _, questionLine := range ss.processString(card.Question) {
+		lines = append(lines, " "+questionLine)
+	}
+	lines = append(lines, "\n")
+	lines = append(lines, " ------")
+	lines = append(lines, "\n")
+	switch state {
+	case questionState:
+		for i := 0; i < len(ss.processString(card.Answer)); i++ {
+			lines = append(lines, "")
+		}
+	case questionAndAnswerState:
+		for _, answerLine := range ss.processString(card.Answer) {
+			lines = append(lines, " "+answerLine)
 		}
 	}
-}
 
-func (ss StudySession) renderQuestionAndAnswer(card *models.Card) {
-	// build lines var, which represents lines to print to screen
-	lines := []string{}
-	for _, questionLine := range ss.processString(card.Question) {
-		lines = append(lines, questionLine)
+	// add controls lines
+	lines = append(lines, "")
+	lines = append(lines, "")
+	switch state {
+	case questionState:
+		lines = append(lines, " <space>/<enter>: show answer")
+	case questionAndAnswerState:
+		failedMultiplier, _ := getMultiplierFromRune(failedKey)
+		failed := card.GetMultipliedReviewInterval(failedMultiplier)
+		hardMultiplier, _ := getMultiplierFromRune(hardKey)
+		hard := card.GetMultipliedReviewInterval(hardMultiplier)
+		normalMultiplier, _ := getMultiplierFromRune(normalKey)
+		normal := card.GetMultipliedReviewInterval(normalMultiplier)
+		easyMultiplier, _ := getMultiplierFromRune(easyKey)
+		easy := card.GetMultipliedReviewInterval(easyMultiplier)
+		keyLineFmt := " <%c>: failed (%dd)\t\t <%c>: hard (%dd)\t\t" +
+			"<%c>: normal (%dd)\t\t<%c>: easy (%dd)"
+		keyLine := fmt.Sprintf(
+			keyLineFmt,
+			failedKey, failed,
+			hardKey, hard,
+			normalKey, normal,
+			easyKey, easy,
+		)
+		lines = append(lines, keyLine)
 	}
-	lines = append(lines, "\n")
-	lines = append(lines, "------")
-	lines = append(lines, "\n")
-	for _, answerLine := range ss.processString(card.Answer) {
-		lines = append(lines, answerLine)
-	}
+	lines = append(lines, " <i>: set card to inactive")
+	lines = append(lines, " <ctrl-C>/<escape>/<q>: save studied cards & exit")
 
 	// print to screen
+	if _, height := ss.Screen.Size(); len(lines) > height {
+		return errors.New("screen is too small")
+	}
 	for lineIndex, line := range lines {
 		for i, runeValue := range line {
 			ss.Screen.SetContent(i, lineIndex, runeValue, nil, StyleDefault)
 		}
 	}
+	return nil
 }
 
 func getMultiplierFromRune(key rune) (float64, error) {
-	valueMap := map[rune]float64{
-		'1': 0.0,
-		'2': 1.0,
-		'3': 1.5,
-		'4': 2.0,
+	switch key {
+	case failedKey:
+		return 0.0, nil
+	case hardKey:
+		return 1.0, nil
+	case normalKey:
+		return 1.5, nil
+	case easyKey:
+		return 2.0, nil
+	default:
+		return 0.0, fmt.Errorf(`invalid key "%c"`, key)
 	}
-	multiplier, ok := valueMap[key]
-	if ok {
-		return multiplier, nil
-	}
-	return 0.0, fmt.Errorf(`invalid key "%c"`, key)
 }
