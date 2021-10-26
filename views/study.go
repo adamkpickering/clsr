@@ -113,6 +113,18 @@ func (ss StudySession) renderQuestionOnly(card *models.Card, totalCards, cardNum
 		lines = append(lines, " "+questionLine)
 	}
 
+	// add controls lines
+	controlsLines := []string{
+		"",
+		"",
+		" <space>/<enter>: show answer",
+		" <i>: set card to inactive",
+		" <ctrl-C>/<escape>: save studied cards & exit",
+	}
+	for _, controlsLine := range controlsLines {
+		lines = append(lines, controlsLine)
+	}
+
 	// print to screen
 	for lineIndex, line := range lines {
 		for i, runeValue := range line {
@@ -137,6 +149,18 @@ func (ss StudySession) renderQuestionAndAnswer(card *models.Card, totalCards, ca
 	lines = append(lines, "\n")
 	for _, answerLine := range ss.processString(card.Answer) {
 		lines = append(lines, " "+answerLine)
+	}
+
+	// add controls lines
+	controlsLines := []string{
+		"",
+		"",
+		" <1>: failed\t\t <2>: hard\t\t<3>: normal\t\t<4>: easy",
+		" <i>: set card to inactive",
+		" <ctrl-C>/<escape>: save studied cards & exit",
+	}
+	for _, controlsLine := range controlsLines {
+		lines = append(lines, controlsLine)
 	}
 
 	// print to screen
