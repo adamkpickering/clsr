@@ -125,7 +125,7 @@ func listCards() error {
 			{Text: fmt.Sprintf("%t", card.Active)},
 			{Text: lastReviewed},
 			{Text: card.NextReview.Format(models.DateLayout)},
-			{Text: fmt.Sprintf("%d", card.DaysUntilDue())},
+			{Text: fmt.Sprintf("%dd", card.DaysUntilDue())},
 		}
 		table.Body.Cells = append(table.Body.Cells, row)
 	}
