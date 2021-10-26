@@ -100,6 +100,7 @@ var createCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to parse user-input data: %w", err)
 			}
+			card.Modified = true
 
 			// add the card to the deck and sync the deck
 			deck.AddCard(card)
