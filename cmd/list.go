@@ -154,6 +154,8 @@ func listDecks() error {
 		Cells: []*simpletable.Cell{
 			{Text: "Deck"},
 			{Text: "Cards Due"},
+			{Text: "Active Cards"},
+			{Text: "Inactive Cards"},
 			{Text: "Total Cards"},
 		},
 	}
@@ -161,6 +163,8 @@ func listDecks() error {
 		row := []*simpletable.Cell{
 			{Text: deck.Name},
 			{Text: fmt.Sprintf("%d", deck.CountCardsDue())},
+			{Text: fmt.Sprintf("%d", deck.CountActiveCards())},
+			{Text: fmt.Sprintf("%d", deck.CountInactiveCards())},
 			{Text: fmt.Sprintf("%d", len(deck.Cards))},
 		}
 		table.Body.Cells = append(table.Body.Cells, row)

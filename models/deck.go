@@ -27,3 +27,23 @@ func (d *Deck) CountCardsDue() int {
 	}
 	return count
 }
+
+func (d *Deck) CountActiveCards() int {
+	count := 0
+	for _, card := range d.Cards {
+		if card.Active {
+			count += 1
+		}
+	}
+	return count
+}
+
+func (d *Deck) CountInactiveCards() int {
+	count := 0
+	for _, card := range d.Cards {
+		if !card.Active {
+			count += 1
+		}
+	}
+	return count
+}
