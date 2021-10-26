@@ -68,6 +68,7 @@ func (ss StudySession) studyCard(card *models.Card) error {
 					keyRune := event.Rune()
 					if keyRune == 'i' {
 						card.Active = false
+						card.Modified = true
 						return nil
 					} else if key == tcell.KeyEnter || keyRune == ' ' {
 						state = questionAndAnswerState

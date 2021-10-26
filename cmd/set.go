@@ -84,10 +84,12 @@ There are two states for cards: "active", and "inactive".
 			case "active":
 				if !card.Active {
 					card.Active = true
+					card.Modified = true
 				}
 			case "inactive":
 				if card.Active {
 					card.Active = false
+					card.Modified = true
 				}
 			default:
 				return fmt.Errorf("invalid adjective %q", adjective)

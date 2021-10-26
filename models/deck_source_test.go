@@ -34,8 +34,8 @@ func TestSyncDeck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create deck: %s", err)
 	}
-	card1 := NewCard("card1 question", "card1 answer")
-	card2 := NewCard("card2 question", "card2 answer")
+	card1 := NewCard("card1 question", "card1 answer", testDeckName)
+	card2 := NewCard("card2 question", "card2 answer", testDeckName)
 	initialDeck.Cards = []*Card{card1, card2}
 	err = deckSource.SyncDeck(initialDeck)
 	if err != nil {

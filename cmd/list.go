@@ -105,6 +105,7 @@ func listCards() error {
 	table.Header = &simpletable.Header{
 		Cells: []*simpletable.Cell{
 			{Text: "ID"},
+			{Text: "Deck"},
 			{Text: "Active"},
 			{Text: "Last Reviewed"},
 			{Text: "Next Review"},
@@ -112,10 +113,17 @@ func listCards() error {
 		},
 	}
 	for _, card := range cards {
+		var lastReviewed string
+		if card.LastReview.IsZero() {
+			lastReviewed = "never"
+		} else {
+			lastReviewed = card.LastReview.Format(models.DateLayout)
+		}
 		row := []*simpletable.Cell{
 			{Text: card.ID},
+			{Text: card.Deck},
 			{Text: fmt.Sprintf("%t", card.Active)},
-			{Text: card.LastReview.Format(models.DateLayout)},
+			{Text: lastReviewed},
 			{Text: card.NextReview.Format(models.DateLayout)},
 			{Text: fmt.Sprintf("%d", card.DaysUntilDue())},
 		}
