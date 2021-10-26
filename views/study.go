@@ -110,7 +110,7 @@ func (ss StudySession) renderQuestionOnly(card *models.Card, totalCards, cardNum
 
 	// add question
 	for _, questionLine := range ss.processString(card.Question) {
-		lines = append(lines, questionLine)
+		lines = append(lines, " "+questionLine)
 	}
 
 	// print to screen
@@ -130,13 +130,13 @@ func (ss StudySession) renderQuestionAndAnswer(card *models.Card, totalCards, ca
 
 	// build lines var, which represents lines to print to screen
 	for _, questionLine := range ss.processString(card.Question) {
-		lines = append(lines, questionLine)
+		lines = append(lines, " "+questionLine)
 	}
 	lines = append(lines, "\n")
-	lines = append(lines, "------")
+	lines = append(lines, " ------")
 	lines = append(lines, "\n")
 	for _, answerLine := range ss.processString(card.Answer) {
-		lines = append(lines, answerLine)
+		lines = append(lines, " "+answerLine)
 	}
 
 	// print to screen
