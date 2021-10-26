@@ -48,7 +48,10 @@ func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) 
 	for {
 		// render screen
 		ss.Screen.Clear()
-		ss.render(card, state, totalCards, cardNumber)
+		err := ss.render(card, state, totalCards, cardNumber)
+		if err != nil {
+			return err
+		}
 		ss.Screen.Show()
 
 		// poll for event and act on it
@@ -103,7 +106,7 @@ func (ss StudySession) processString(rawString string) []string {
 	return stringLines
 }
 
-func (ss StudySession) render(card *models.Card, state studyState, totalCards, cardNumber int) {
+func (ss StudySession) render(card *models.Card, state studyState, totalCards, cardNumber int) error {
 	var lines []string
 
 	// add the status line
@@ -160,11 +163,15 @@ func (ss StudySession) render(card *models.Card, state studyState, totalCards, c
 	lines = append(lines, " <ctrl-C>/<escape>: save studied cards & exit")
 
 	// print to screen
+	if _, height := ss.Screen.Size(); len(lines) > height {
+		return errors.New("screen is too small")
+	}
 	for lineIndex, line := range lines {
 		for i, runeValue := range line {
 			ss.Screen.SetContent(i, lineIndex, runeValue, nil, StyleDefault)
 		}
 	}
+	return nil
 }
 
 func getMultiplierFromRune(key rune) (float64, error) {
