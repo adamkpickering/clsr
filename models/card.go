@@ -221,6 +221,12 @@ func (card *Card) GetCurrentReviewInterval() int {
 	rawDifference := card.NextReview.Sub(card.LastReview)
 	difference := rawDifference.Round(24 * time.Hour)
 	days := int(difference / (24 * time.Hour))
+
+	// without this we can't ever get past 0 days
+	if days == 0 {
+		return 1
+	}
+
 	return days
 }
 
