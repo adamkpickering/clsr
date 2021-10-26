@@ -25,6 +25,7 @@ const DateLayout = "2006-01-02"
 
 var idRegex *regexp.Regexp
 var versionRegex *regexp.Regexp
+var deckRegex *regexp.Regexp
 var lastReviewRegex *regexp.Regexp
 var nextReviewRegex *regexp.Regexp
 var activeRegex *regexp.Regexp
@@ -34,6 +35,7 @@ var commentRegex *regexp.Regexp
 func init() {
 	idRegex = regexp.MustCompile(`^ID *=`)
 	versionRegex = regexp.MustCompile(`^Version *=`)
+	deckRegex = regexp.MustCompile(`^Deck *=`)
 	lastReviewRegex = regexp.MustCompile(`^LastReview *=`)
 	nextReviewRegex = regexp.MustCompile(`^NextReview *=`)
 	activeRegex = regexp.MustCompile(`^Active *=`)
@@ -44,12 +46,13 @@ func init() {
 type Card struct {
 	ID         string
 	Version    int
+	Deck       string
 	LastReview time.Time
 	NextReview time.Time
 	Active     bool
+	Modified   bool
 	Question   string
 	Answer     string
-	Modified   bool
 }
 
 // Returns a string of length n that is comprised of random letters
@@ -64,11 +67,12 @@ func randomString(n int) string {
 	return string(b)
 }
 
-func NewCard(question string, answer string) *Card {
+func NewCard(question string, answer string, deck string) *Card {
 	year, month, day := time.Now().Date()
 	return &Card{
 		ID:         randomString(10),
 		Version:    0,
+		Deck:       deck,
 		LastReview: time.Time{},
 		NextReview: time.Date(year, month, day, 0, 0, 0, 0, time.Local),
 		Question:   question,
@@ -83,6 +87,7 @@ func (card *Card) MarshalText() ([]byte, error) {
 	outputCard := map[string]string{}
 	outputCard["ID"] = card.ID
 	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
+	outputCard["Deck"] = fmt.Sprintf("%s", card.Deck)
 	outputCard["LastReview"] = card.LastReview.Format(DateLayout)
 	outputCard["NextReview"] = card.NextReview.Format(DateLayout)
 	outputCard["Active"] = fmt.Sprintf("%t", card.Active)
@@ -107,6 +112,7 @@ func (card *Card) UnmarshalText(text []byte) error {
 	// instantiate variables to be filled
 	var id string
 	var version int
+	var deck string
 	var lastReview, nextReview time.Time
 	var active bool
 
@@ -128,6 +134,10 @@ func (card *Card) UnmarshalText(text []byte) error {
 					return fmt.Errorf("failed to parse Version: %w", err)
 				}
 				version = int(value)
+
+			} else if deckRegex.MatchString(line) {
+				rawDeck := strings.Split(line, "=")[1]
+				deck = strings.TrimSpace(rawDeck)
 
 			} else if lastReviewRegex.MatchString(line) {
 				var value time.Time
@@ -189,6 +199,7 @@ func (card *Card) UnmarshalText(text []byte) error {
 
 	card.ID = id
 	card.Version = version
+	card.Deck = deck
 	card.LastReview = lastReview
 	card.NextReview = nextReview
 	card.Active = active

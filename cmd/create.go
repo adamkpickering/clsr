@@ -77,7 +77,7 @@ var createCmd = &cobra.Command{
 			}
 			question := "# Write the question here. All lines starting with # will be ignored."
 			answer := "# Write the answer here. All lines starting with # will be ignored."
-			card := models.NewCard(question, answer)
+			card := models.NewCard(question, answer, deckName)
 			cardText, err := card.MarshalText()
 			if err != nil {
 				return fmt.Errorf("failed to marshal card: %w", err)

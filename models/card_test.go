@@ -60,7 +60,7 @@ good job`
 
 func TestCardWriteRead(t *testing.T) {
 	tempdir := t.TempDir()
-	oldCard := NewCard("fake question", "fake answer")
+	oldCard := NewCard("fake question", "fake answer", "fake_deck")
 	oldCard.Modified = false
 	cardPath := filepath.Join(tempdir, GetCardFilename(oldCard))
 	err := WriteCardToFile(cardPath, oldCard)
@@ -107,7 +107,7 @@ func TestGetCurrentReviewInterval(t *testing.T) {
 		},
 	}
 	for _, test := range testCases {
-		card := NewCard("fake question", "fake answer")
+		card := NewCard("fake question", "fake answer", "fake_deck")
 		card.LastReview = test.LastReview
 		card.NextReview = test.NextReview
 		interval := card.GetCurrentReviewInterval()
@@ -188,7 +188,7 @@ func TestGetMultipliedReviewInterval(t *testing.T) {
 		},
 	}
 	for _, test := range testCases {
-		card := NewCard("fake question", "fake answer")
+		card := NewCard("fake question", "fake answer", "fake_deck")
 		card.LastReview = test.LastReview
 		card.NextReview = test.NextReview
 		interval := card.GetMultipliedReviewInterval(test.Multiplier)
@@ -200,7 +200,7 @@ func TestGetMultipliedReviewInterval(t *testing.T) {
 }
 
 func TestSetNextReview(t *testing.T) {
-	card := NewCard("fake question", "fake answer")
+	card := NewCard("fake question", "fake answer", "fake_deck")
 	if !card.LastReview.IsZero() {
 		t.Error("card.LastReview is not zero valued")
 	}
@@ -233,7 +233,7 @@ func TestHonorComments(t *testing.T) {
 	answerComment := "# this is a comment line"
 	answerContent := "this is the actual answer"
 	answer := answerComment + "\n" + answerContent
-	inputCard := NewCard(question, answer)
+	inputCard := NewCard(question, answer, "fake_deck")
 	inputCardString := fmt.Sprintf(cardFmtString, inputCard.ID, inputCard.Version, inputCard.LastReview.Format(DateLayout), inputCard.NextReview.Format(DateLayout), inputCard.Active, inputCard.Question, inputCard.Answer)
 
 	// parse the card and ensure that comments are not there
@@ -257,7 +257,7 @@ func TestDaysUntilDue(t *testing.T) {
 	for _, testCase := range testCases {
 		year, month, day := time.Now().Date()
 		today := time.Date(year, month, day, 0, 0, 0, 0, time.Local)
-		card := NewCard("fake question", "fake answer")
+		card := NewCard("fake question", "fake answer", "fake_deck")
 		card.NextReview = today.AddDate(0, 0, testCase)
 		if due := card.DaysUntilDue(); due != testCase {
 			t.Errorf("Got %d days until due (%d expected)", due, testCase)
