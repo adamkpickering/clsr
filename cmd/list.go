@@ -105,6 +105,7 @@ func listCards() error {
 	table.Header = &simpletable.Header{
 		Cells: []*simpletable.Cell{
 			{Text: "ID"},
+			{Text: "Deck"},
 			{Text: "Active"},
 			{Text: "Last Reviewed"},
 			{Text: "Next Review"},
@@ -114,6 +115,7 @@ func listCards() error {
 	for _, card := range cards {
 		row := []*simpletable.Cell{
 			{Text: card.ID},
+			{Text: card.Deck},
 			{Text: fmt.Sprintf("%t", card.Active)},
 			{Text: card.LastReview.Format(models.DateLayout)},
 			{Text: card.NextReview.Format(models.DateLayout)},
