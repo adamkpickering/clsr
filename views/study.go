@@ -20,6 +20,13 @@ const (
 	questionAndAnswerState
 )
 
+const (
+	failedKey rune = '1'
+	hardKey   rune = '2'
+	normalKey rune = '3'
+	easyKey   rune = '4'
+)
+
 type StudySession struct {
 	Screen tcell.Screen
 	Cards  []*models.Card
@@ -152,10 +159,27 @@ func (ss StudySession) renderQuestionAndAnswer(card *models.Card, totalCards, ca
 	}
 
 	// add controls lines
+	failedMultiplier, _ := getMultiplierFromRune(failedKey)
+	failed := card.GetMultipliedReviewInterval(failedMultiplier)
+	hardMultiplier, _ := getMultiplierFromRune(hardKey)
+	hard := card.GetMultipliedReviewInterval(hardMultiplier)
+	normalMultiplier, _ := getMultiplierFromRune(normalKey)
+	normal := card.GetMultipliedReviewInterval(normalMultiplier)
+	easyMultiplier, _ := getMultiplierFromRune(easyKey)
+	easy := card.GetMultipliedReviewInterval(easyMultiplier)
+	keyLineFmt := " <%c>: failed (%dd)\t\t <%c>: hard (%dd)\t\t" +
+		"<%c>: normal (%dd)\t\t<%c>: easy (%dd)"
+	keyLine := fmt.Sprintf(
+		keyLineFmt,
+		failedKey, failed,
+		hardKey, hard,
+		normalKey, normal,
+		easyKey, easy,
+	)
 	controlsLines := []string{
 		"",
 		"",
-		" <1>: failed\t\t <2>: hard\t\t<3>: normal\t\t<4>: easy",
+		keyLine,
 		" <i>: set card to inactive",
 		" <ctrl-C>/<escape>: save studied cards & exit",
 	}
@@ -178,15 +202,16 @@ func getStatusLine(cardNumber, totalCards int, deckName, cardID string) string {
 }
 
 func getMultiplierFromRune(key rune) (float64, error) {
-	valueMap := map[rune]float64{
-		'1': 0.0,
-		'2': 1.0,
-		'3': 1.5,
-		'4': 2.0,
+	switch key {
+	case failedKey:
+		return 0.0, nil
+	case hardKey:
+		return 1.0, nil
+	case normalKey:
+		return 1.5, nil
+	case easyKey:
+		return 2.0, nil
+	default:
+		return 0.0, fmt.Errorf(`invalid key "%c"`, key)
 	}
-	multiplier, ok := valueMap[key]
-	if ok {
-		return multiplier, nil
-	}
-	return 0.0, fmt.Errorf(`invalid key "%c"`, key)
 }
