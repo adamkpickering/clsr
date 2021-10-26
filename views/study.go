@@ -77,6 +77,11 @@ func (ss StudySession) studyCard(card *models.Card) error {
 			case questionAndAnswerState:
 				if key == tcell.KeyRune {
 					keyRune := event.Rune()
+					if keyRune == 'i' {
+						card.Active = false
+						card.Modified = true
+						return nil
+					}
 					multiplier, err := getMultiplierFromRune(keyRune)
 					if err != nil {
 						continue
