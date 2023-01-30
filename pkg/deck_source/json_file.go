@@ -2,10 +2,10 @@ package deck_source
 
 import (
 	"encoding/json"
-	"filepath"
 	"fmt"
 	"github.com/adamkpickering/clsr/pkg/models"
 	"os"
+	"path/filepath"
 )
 
 type JSONFileDeckSource struct {
@@ -32,14 +32,14 @@ func (deckSource JSONFileDeckSource) ReadDeck(name string) (*models.Deck, error)
 	// read deck file
 	contents, err := os.ReadFile(deckPath)
 	if err != nil {
-		return &models.Deck{}, fmt.Errorf("failed to read deck %s: %w", name, err)
+		return &models.Deck{}, fmt.Errorf("failed to read deck: %w", err)
 	}
 
 	// decode contents into Deck struct
 	deck := &models.Deck{}
 	err = json.Unmarshal(contents, deck)
 	if err != nil {
-		return &models.Deck{}, fmt.Errorf("failed to parse contents of deck: %w", name, err)
+		return &models.Deck{}, fmt.Errorf("failed to parse contents of deck: %w", err)
 	}
 	return deck, nil
 }
@@ -51,7 +51,7 @@ func (deckSource JSONFileDeckSource) WriteDeck(deck *models.Deck) error {
 	// marshal contents of deck file
 	contents, err := json.MarshalIndent(deck, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal Deck to JSON: %w")
+		return fmt.Errorf("failed to marshal Deck to JSON: %w", err)
 	}
 
 	// write deck file
