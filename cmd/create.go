@@ -38,7 +38,6 @@ var ErrNotModified error = errors.New("temporary file not modified")
 
 const tempFileDivider = "--------------------"
 
-// createCmd represents the create command
 var createCmd = &cobra.Command{
 	Use:   "create <resource_type> [<resource_name>]",
 	Short: "Create a resource",
