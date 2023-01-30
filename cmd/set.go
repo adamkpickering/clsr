@@ -26,7 +26,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/adamkpickering/clsr/models"
+	"github.com/adamkpickering/clsr/pkg/deck_source"
+	"github.com/adamkpickering/clsr/pkg/models"
 	"github.com/spf13/cobra"
 )
 
@@ -43,12 +44,11 @@ There are two states for cards: "active", and "inactive".
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// check that the directory has been initialized
 		if _, err := os.Stat(deckDirectory); errors.Is(err, os.ErrNotExist) {
-			msg := "could not find %s. Please call `clsr init` and try again."
-			return fmt.Errorf(msg, deckDirectory)
+			return fmt.Errorf("Could not find %s. Please call `clsr init` and try again.", deckDirectory)
 		}
 
 		// construct DeckSource
-		deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
+		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
 			return fmt.Errorf("failed to construct DeckSource: %w", err)
 		}
@@ -57,9 +57,9 @@ There are two states for cards: "active", and "inactive".
 		if len(deckName) == 0 {
 			return errors.New("must specify --deck/-d")
 		}
-		deck, err := deckSource.LoadDeck(deckName)
+		deck, err := deckSource.ReadDeck(deckName)
 		if err != nil {
-			return fmt.Errorf("failed to load deck %q: %w", deckName, err)
+			return fmt.Errorf("failed to read deck %q: %w", deckName, err)
 		}
 
 		// get the card from the deck
@@ -97,10 +97,10 @@ There are two states for cards: "active", and "inactive".
 			return fmt.Errorf("invalid resource type %q", resourceType)
 		}
 
-		// sync deck
-		err = deckSource.SyncDeck(deck)
+		// write deck
+		err = deckSource.WriteDeck(deck)
 		if err != nil {
-			return fmt.Errorf("failed to sync deck %q: %w", deck.Name, err)
+			return fmt.Errorf("failed to write deck %q: %w", deck.Name, err)
 		}
 
 		return nil
