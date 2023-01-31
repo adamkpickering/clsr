@@ -25,7 +25,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/adamkpickering/clsr/models"
+	"github.com/adamkpickering/clsr/pkg/deck_source"
+	"github.com/adamkpickering/clsr/pkg/models"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
@@ -37,7 +38,6 @@ var deckName string
 
 var cfgFile string
 
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "clsr",
 	Short: "Learn things efficiently on the CLI using spaced repetition",
@@ -49,9 +49,6 @@ spaced repetition applications, except cards are always stored in
 plain text. By doing this, we gain all the usual benefits of storing
 data in plain text, such as scriptability and the ability to commit
 data to version control.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -62,11 +59,6 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
 	configHelp := "config file (default is $HOME/.clsr.yaml)"
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", configHelp)
 	deckHelp := "the deck to act on, if applicable"
@@ -97,7 +89,7 @@ func initConfig() {
 	}
 }
 
-func getAllDecks(deckSource models.DeckSource) ([]*models.Deck, error) {
+func getAllDecks(deckSource deck_source.DeckSource) ([]*models.Deck, error) {
 	// get list of deck names
 	deckNames, err := deckSource.ListDecks()
 	if err != nil {
@@ -107,9 +99,9 @@ func getAllDecks(deckSource models.DeckSource) ([]*models.Deck, error) {
 	// load decks
 	decks := []*models.Deck{}
 	for _, deckName := range deckNames {
-		deck, err := deckSource.LoadDeck(deckName)
+		deck, err := deckSource.ReadDeck(deckName)
 		if err != nil {
-			return []*models.Deck{}, fmt.Errorf("failed to load deck %q: %w", deckName, err)
+			return []*models.Deck{}, fmt.Errorf("failed to read deck %q: %w", deckName, err)
 		}
 		decks = append(decks, deck)
 	}
