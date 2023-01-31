@@ -73,7 +73,7 @@ var createCmd = &cobra.Command{
 			}
 
 			// exec into editor to get Card fields from user
-			card, err := getCardFromUserViaEditor()
+			card, err := getCardFromUserViaEditor(deckName)
 			if err == ErrNotModified {
 				return nil
 			} else if err != nil {
@@ -135,7 +135,7 @@ func getPreferredEditor() string {
 // Execs into the user's preferred editor and returns what they enter
 // as a new Card. If the user exits without writing any changes,
 // error is set to ErrNotModified.
-func getCardFromUserViaEditor() (*models.Card, error) {
+func getCardFromUserViaEditor(deckName string) (*models.Card, error) {
 	// create temp directory
 	tempDir, err := os.MkdirTemp("", "")
 	if err != nil {
@@ -188,7 +188,7 @@ func getCardFromUserViaEditor() (*models.Card, error) {
 	}
 	question := strings.ReplaceAll(elements[0], tempFileQuestion, "")
 	answer := strings.ReplaceAll(elements[1], tempFileAnswer, "")
-	card := models.NewCard(question, answer)
+	card := models.NewCard(question, answer, deckName)
 
 	return card, nil
 }

@@ -46,6 +46,9 @@ func (deckSource JSONFileDeckSource) ReadDeck(name string) (*models.Deck, error)
 	if err != nil {
 		return &models.Deck{}, fmt.Errorf("failed to parse contents of deck: %w", err)
 	}
+	for _, card := range deck.Cards {
+		card.Deck = deck.Name
+	}
 	return deck, nil
 }
 

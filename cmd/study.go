@@ -24,7 +24,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/adamkpickering/clsr/models"
+	"github.com/adamkpickering/clsr/pkg/deck_source"
+	"github.com/adamkpickering/clsr/pkg/models"
 	"github.com/adamkpickering/clsr/views"
 	"github.com/gdamore/tcell/v2"
 	"github.com/spf13/cobra"
@@ -36,30 +37,23 @@ var studyCmd = &cobra.Command{
 	Long:  "\nUsed to study any cards that need to be studied.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// get a DeckSource
-		deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
+		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
 			return fmt.Errorf("failed to get DeckSource: %w", err)
 		}
 
-		// get a list of decks to work on
-		var decks []*models.Deck
+		// get a list of decks
+		decks := []*models.Deck{}
 		if len(deckName) > 0 {
-			deck, err := deckSource.LoadDeck(deckName)
+			deck, err := deckSource.ReadDeck(deckName)
 			if err != nil {
-				return fmt.Errorf("failed to load deck %q: %w", deckName, err)
+				return fmt.Errorf("failed to read deck %q: %w", deckName, err)
 			}
 			decks = append(decks, deck)
 		} else {
-			deckNames, err := deckSource.ListDecks()
+			decks, err = getAllDecks(deckSource)
 			if err != nil {
-				return fmt.Errorf("failed to get deck names: %w", err)
-			}
-			for _, deckName := range deckNames {
-				deck, err := deckSource.LoadDeck(deckName)
-				if err != nil {
-					return fmt.Errorf("failed to load deck %q: %w", deckName, err)
-				}
-				decks = append(decks, deck)
+				return fmt.Errorf("failed to get decks: %w", err)
 			}
 		}
 
@@ -67,7 +61,11 @@ var studyCmd = &cobra.Command{
 		var cardsToStudy []*models.Card
 		for _, deck := range decks {
 			for _, card := range deck.Cards {
-				if card.IsDue() && card.Active {
+				isDue, err := card.IsDue()
+				if err != nil {
+					return fmt.Errorf("failed to determine whether card %q is due: %w", card.ID, err)
+				}
+				if isDue && card.Active {
 					cardsToStudy = append(cardsToStudy, card)
 				}
 			}
@@ -93,9 +91,9 @@ var studyCmd = &cobra.Command{
 			return fmt.Errorf("problem while studying cards: %w", err)
 		}
 
-		// write the changes to the deck
+		// write the changes to the decks
 		for _, deck := range decks {
-			err = deckSource.SyncDeck(deck)
+			err = deckSource.WriteDeck(deck)
 			if err != nil {
 				return fmt.Errorf("failed to sync studied deck %q: %w", deck.Name, err)
 			}

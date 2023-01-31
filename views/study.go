@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/adamkpickering/clsr/models"
+	"github.com/adamkpickering/clsr/pkg/models"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -20,12 +20,12 @@ const (
 	questionAndAnswerState
 )
 
-const (
-	failedKey rune = '1'
-	hardKey   rune = '2'
-	normalKey rune = '3'
-	easyKey   rune = '4'
-)
+var keyToReviewResult = map[rune]models.ReviewResult{
+	'1': models.Failed,
+	'2': models.Hard,
+	'3': models.Normal,
+	'4': models.Easy,
+}
 
 type StudySession struct {
 	Screen tcell.Screen
@@ -87,11 +87,12 @@ func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) 
 					card.Modified = true
 					return nil
 				}
-				multiplier, err := getMultiplierFromRune(keyRune)
-				if err != nil {
+				reviewResult, ok := keyToReviewResult[keyRune]
+				if !ok {
 					continue
 				}
-				card.SetNextReview(multiplier)
+				newReview := models.NewReview(reviewResult)
+				card.Reviews = append(card.Reviews, newReview)
 				return nil
 			}
 		}
@@ -138,24 +139,24 @@ func (ss StudySession) render(card *models.Card, state studyState, totalCards, c
 	case questionState:
 		lines = append(lines, " <space>/<enter>: show answer")
 	case questionAndAnswerState:
-		failedMultiplier, _ := getMultiplierFromRune(failedKey)
-		failed := card.GetMultipliedReviewInterval(failedMultiplier)
-		hardMultiplier, _ := getMultiplierFromRune(hardKey)
-		hard := card.GetMultipliedReviewInterval(hardMultiplier)
-		normalMultiplier, _ := getMultiplierFromRune(normalKey)
-		normal := card.GetMultipliedReviewInterval(normalMultiplier)
-		easyMultiplier, _ := getMultiplierFromRune(easyKey)
-		easy := card.GetMultipliedReviewInterval(easyMultiplier)
-		keyLineFmt := " <%c>: failed (%dd)\t\t <%c>: hard (%dd)\t\t" +
-			"<%c>: normal (%dd)\t\t<%c>: easy (%dd)"
-		keyLine := fmt.Sprintf(
-			keyLineFmt,
-			failedKey, failed,
-			hardKey, hard,
-			normalKey, normal,
-			easyKey, easy,
-		)
-		lines = append(lines, keyLine)
+		// failedMultiplier, _ := getMultiplierFromRune(failedKey)
+		// failed := card.GetMultipliedReviewInterval(failedMultiplier)
+		// hardMultiplier, _ := getMultiplierFromRune(hardKey)
+		// hard := card.GetMultipliedReviewInterval(hardMultiplier)
+		// normalMultiplier, _ := getMultiplierFromRune(normalKey)
+		// normal := card.GetMultipliedReviewInterval(normalMultiplier)
+		// easyMultiplier, _ := getMultiplierFromRune(easyKey)
+		// easy := card.GetMultipliedReviewInterval(easyMultiplier)
+		// keyLineFmt := " <%c>: failed (%dd)\t\t <%c>: hard (%dd)\t\t" +
+		// 	"<%c>: normal (%dd)\t\t<%c>: easy (%dd)"
+		// keyLine := fmt.Sprintf(
+		// 	keyLineFmt,
+		// 	failedKey, failed,
+		// 	hardKey, hard,
+		// 	normalKey, normal,
+		// 	easyKey, easy,
+		// )
+		// lines = append(lines, keyLine)
 	}
 	lines = append(lines, " <i>: set card to inactive")
 	lines = append(lines, " <ctrl-C>/<escape>/<q>: save studied cards & exit")
@@ -172,17 +173,17 @@ func (ss StudySession) render(card *models.Card, state studyState, totalCards, c
 	return nil
 }
 
-func getMultiplierFromRune(key rune) (float64, error) {
-	switch key {
-	case failedKey:
-		return 0.0, nil
-	case hardKey:
-		return 1.0, nil
-	case normalKey:
-		return 1.5, nil
-	case easyKey:
-		return 2.0, nil
-	default:
-		return 0.0, fmt.Errorf(`invalid key "%c"`, key)
-	}
-}
+// func getMultiplierFromRune(key rune) (float64, error) {
+// 	switch key {
+// 	case failedKey:
+// 		return 0.0, nil
+// 	case hardKey:
+// 		return 1.0, nil
+// 	case normalKey:
+// 		return 1.5, nil
+// 	case easyKey:
+// 		return 2.0, nil
+// 	default:
+// 		return 0.0, fmt.Errorf(`invalid key "%c"`, key)
+// 	}
+// }

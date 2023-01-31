@@ -18,3 +18,11 @@ type Review struct {
 	Result   ReviewResult `json:"result"`
 	Datetime time.Time    `json:"datetime"`
 }
+
+func NewReview(result ReviewResult) *Review {
+	return &Review{
+		Version:  0,
+		Result:   result,
+		Datetime: time.Now(),
+	}
+}

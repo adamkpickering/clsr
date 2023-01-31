@@ -46,6 +46,7 @@ const DateLayout = "2006-01-02"
 
 type Card struct {
 	ID       string    `json:"id"`
+	Deck     string    `json:"-"`
 	Version  int       `json:"version"`
 	Active   bool      `json:"active"`
 	Modified bool      `json:"-"`
@@ -66,9 +67,10 @@ func randomString(n int) string {
 	return string(b)
 }
 
-func NewCard(question string, answer string) *Card {
+func NewCard(question string, answer string, deck string) *Card {
 	return &Card{
 		ID:       randomString(10),
+		Deck:     deck,
 		Version:  0,
 		Question: question,
 		Answer:   answer,
@@ -79,7 +81,6 @@ func NewCard(question string, answer string) *Card {
 }
 
 func (card *Card) NextReview() (time.Time, error) {
-	// get time between reviews
 	var timeBetweenReviews time.Duration
 	reviewsLength := len(card.Reviews)
 	if reviewsLength == 0 {
@@ -120,6 +121,14 @@ func (card *Card) GetMultiplier(config *config.Config) (float64, error) {
 	return 0.0, fmt.Errorf("got unexpected result %q", result)
 }
 
+func (card *Card) IsDue() (bool, error) {
+	nextReview, err := card.NextReview()
+	if err != nil {
+		return false, fmt.Errorf("failed to get next review: %w", err)
+	}
+	return time.Now().After(nextReview), nil
+}
+
 // // Returns the current review interval, that is, the number of days
 // // between the date the card was last reviewed and the date the card
 // // should be reviewed next. Review interval is in days.
@@ -149,24 +158,6 @@ func (card *Card) GetMultiplier(config *config.Config) (float64, error) {
 // 	currentInterval := card.GetCurrentReviewInterval()
 // 	newInterval := int(math.Round(float64(currentInterval) * multiplier))
 // 	return newInterval
-// }
-
-// // Given a multiplier that represents the effect on the review interval
-// // following a card review, modifies the fields of the Card that pertain
-// // to review dates such that they reflect the new interval, with the last
-// // review set to today.
-// func (card *Card) SetNextReview(multiplier float64) {
-// 	// get the next interval between reviews
-// 	newInterval := card.GetMultipliedReviewInterval(multiplier)
-
-// 	// set new last review and new next review
-// 	card.LastReview = time.Now().Truncate(24 * time.Hour)
-// 	card.NextReview = card.LastReview.AddDate(0, 0, newInterval)
-// 	card.Modified = true
-// }
-
-// func (card *Card) IsDue() bool {
-// 	return card.NextReview.Before(time.Now())
 // }
 
 // func (card *Card) DaysUntilDue() int {

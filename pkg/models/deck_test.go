@@ -8,9 +8,10 @@ import (
 
 func TestDeck(t *testing.T) {
 	t.Run("JSONMarshal", func(t *testing.T) {
-		deck := NewDeck("test_deck")
-		card1 := NewCard("this is question 1", "this is question 1")
-		card2 := NewCard("this is question 2", "this is question 2")
+		deckName := "test_deck"
+		deck := NewDeck(deckName)
+		card1 := NewCard("this is question 1", "this is question 1", deckName)
+		card2 := NewCard("this is question 2", "this is question 2", deckName)
 		deck.Cards = append(deck.Cards, card1, card2)
 		result, err := json.MarshalIndent(deck, "", "  ")
 		if err != nil {
