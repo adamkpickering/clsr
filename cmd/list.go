@@ -23,9 +23,7 @@ package cmd
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/adamkpickering/clsr/pkg/config"
 	"github.com/adamkpickering/clsr/pkg/deck_source"
 	"github.com/adamkpickering/clsr/pkg/models"
 	"github.com/alexeyco/simpletable"
@@ -131,9 +129,9 @@ func listCards() error {
 }
 
 func cardToCardRow(card *models.Card, deck string) (cardRow, error) {
-	nextReview, err := calculateNextReview(card)
+	nextReview, err := card.NextReview()
 	if err != nil {
-		return cardRow{}, fmt.Errorf("failed to calculate next review: %w", err)
+		return cardRow{}, fmt.Errorf("failed to get next review: %w", err)
 	}
 	cardRow := cardRow{
 		ID:          card.ID,
@@ -150,61 +148,6 @@ func cardToCardRow(card *models.Card, deck string) (cardRow, error) {
 		cardRow.LastReviewed = card.Reviews[0].Datetime.Format(models.DateLayout)
 	}
 	return cardRow, nil
-}
-
-func calculateNextReview(card *models.Card) (time.Time, error) {
-	// get time between reviews
-	var timeBetweenReviews time.Duration
-	reviewsLength := len(card.Reviews)
-	if reviewsLength == 0 {
-		return time.Now(), nil
-	} else if reviewsLength == 1 {
-		timeBetweenReviews = 24 * time.Hour
-	} else {
-		lastReview := card.Reviews[0].Datetime
-		lastLastReview := card.Reviews[1].Datetime
-		timeBetweenReviews = lastReview.Sub(lastLastReview)
-	}
-
-	multiplier, err := getMultiplierFor(card)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to get multiplier: %w", err)
-	}
-
-	timeUntilNextReview := float64(timeBetweenReviews) * multiplier
-	lastReview := card.Reviews[0].Datetime
-	return lastReview.Add(time.Duration(timeUntilNextReview)), nil
-}
-
-func getTimeBetweenReviews(card *models.Card) time.Duration {
-	reviewsLength := len(card.Reviews)
-	if reviewsLength == 0 {
-		return 0
-	} else if reviewsLength == 1 {
-		return 24 * time.Hour
-	} else {
-		lastReview := card.Reviews[0].Datetime
-		lastLastReview := card.Reviews[1].Datetime
-		return lastReview.Sub(lastLastReview)
-	}
-}
-
-func getMultiplierFor(card *models.Card) (float64, error) {
-	if len(card.Reviews) == 0 {
-		return 0.0, nil
-	}
-	result := card.Reviews[0].Result
-	switch result {
-	case models.Failed:
-		return config.DefaultConfig.Multipliers.Failed, nil
-	case models.Hard:
-		return config.DefaultConfig.Multipliers.Hard, nil
-	case models.Normal:
-		return config.DefaultConfig.Multipliers.Normal, nil
-	case models.Easy:
-		return config.DefaultConfig.Multipliers.Easy, nil
-	}
-	return 0.0, fmt.Errorf("got unexpected result %q", result)
 }
 
 func listDecks() error {

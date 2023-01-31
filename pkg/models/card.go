@@ -2,12 +2,13 @@ package models
 
 import (
 	// "bytes"
-	// "fmt"
+	"fmt"
 	// "math"
 	"math/rand"
 	// "regexp"
 	// "strconv"
 	// "strings"
+	"github.com/adamkpickering/clsr/pkg/config"
 	"time"
 )
 
@@ -77,131 +78,47 @@ func NewCard(question string, answer string) *Card {
 	}
 }
 
-// func (card *Card) MarshalText() ([]byte, error) {
-// 	// process card into a map
-// 	outputCard := map[string]string{}
-// 	outputCard["ID"] = card.ID
-// 	outputCard["Version"] = fmt.Sprintf("%d", card.Version)
-// 	outputCard["Deck"] = fmt.Sprintf("%s", card.Deck)
-// 	outputCard["LastReview"] = card.LastReview.Format(DateLayout)
-// 	outputCard["NextReview"] = card.NextReview.Format(DateLayout)
-// 	outputCard["Active"] = fmt.Sprintf("%t", card.Active)
-// 	outputCard["Question"] = card.Question
-// 	outputCard["Answer"] = card.Answer
+func (card *Card) NextReview() (time.Time, error) {
+	// get time between reviews
+	var timeBetweenReviews time.Duration
+	reviewsLength := len(card.Reviews)
+	if reviewsLength == 0 {
+		return time.Now(), nil
+	} else if reviewsLength == 1 {
+		timeBetweenReviews = 24 * time.Hour
+	} else {
+		lastReview := card.Reviews[0].Datetime
+		lastLastReview := card.Reviews[1].Datetime
+		timeBetweenReviews = lastReview.Sub(lastLastReview)
+	}
 
-// 	// fill buffer with output
-// 	buffer := &bytes.Buffer{}
-// 	err := CardTemplate.Execute(buffer, outputCard)
-// 	if err != nil {
-// 		return []byte{}, fmt.Errorf("failed to execute CardTemplate: %w", err)
-// 	}
+	multiplier, err := card.GetMultiplier(config.DefaultConfig)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to get multiplier: %w", err)
+	}
 
-// 	return buffer.Bytes(), nil
-// }
+	timeUntilNextReview := float64(timeBetweenReviews) * multiplier
+	lastReview := card.Reviews[0].Datetime
+	return lastReview.Add(time.Duration(timeUntilNextReview)), nil
+}
 
-// func (card *Card) UnmarshalText(text []byte) error {
-// 	// trim and split the string into lines
-// 	cardAsString := string(text)
-// 	lines := strings.Split(strings.TrimSpace(cardAsString), "\n")
-
-// 	// instantiate variables to be filled
-// 	var id string
-// 	var version int
-// 	var deck string
-// 	var lastReview, nextReview time.Time
-// 	var active bool
-
-// 	var state parseState = header
-// 	var question_lines, answer_lines []string
-// 	for _, line := range lines {
-// 		switch {
-
-// 		case state == header:
-// 			if idRegex.MatchString(line) {
-// 				rawID := strings.Split(line, "=")[1]
-// 				id = strings.TrimSpace(rawID)
-
-// 			} else if versionRegex.MatchString(line) {
-// 				rawVersion := strings.Split(line, "=")[1]
-// 				trimmedVersion := strings.TrimSpace(rawVersion)
-// 				value, err := strconv.ParseInt(trimmedVersion, 10, strconv.IntSize)
-// 				if err != nil {
-// 					return fmt.Errorf("failed to parse Version: %w", err)
-// 				}
-// 				version = int(value)
-
-// 			} else if deckRegex.MatchString(line) {
-// 				rawDeck := strings.Split(line, "=")[1]
-// 				deck = strings.TrimSpace(rawDeck)
-
-// 			} else if lastReviewRegex.MatchString(line) {
-// 				var value time.Time
-// 				rawValue := strings.Split(line, "=")[1]
-// 				trimmedValue := strings.TrimSpace(rawValue)
-// 				possibleZeroTime, err := time.Parse(DateLayout, trimmedValue)
-// 				if err != nil {
-// 					return fmt.Errorf("failed to parse LastReview as zero time: %w", err)
-// 				}
-// 				if possibleZeroTime.IsZero() {
-// 					value = possibleZeroTime
-// 				} else {
-// 					value, err = time.ParseInLocation(DateLayout, trimmedValue, time.Local)
-// 					if err != nil {
-// 						return fmt.Errorf("failed to parse LastReview: %w", err)
-// 					}
-// 				}
-// 				lastReview = value
-
-// 			} else if nextReviewRegex.MatchString(line) {
-// 				rawValue := strings.Split(line, "=")[1]
-// 				trimmedValue := strings.TrimSpace(rawValue)
-// 				value, err := time.ParseInLocation(DateLayout, trimmedValue, time.Local)
-// 				if err != nil {
-// 					return fmt.Errorf("failed to parse NextReview: %w", err)
-// 				}
-// 				nextReview = value
-
-// 			} else if activeRegex.MatchString(line) {
-// 				rawValue := strings.Split(line, "=")[1]
-// 				trimmedValue := strings.TrimSpace(rawValue)
-// 				value, err := strconv.ParseBool(trimmedValue)
-// 				if err != nil {
-// 					return fmt.Errorf("failed to parse Active: %w", err)
-// 				}
-// 				active = value
-
-// 			} else if dividerRegex.MatchString(line) {
-// 				state = question
-// 			}
-
-// 		case state == question:
-// 			if commentRegex.MatchString(line) {
-// 				continue
-// 			} else if dividerRegex.MatchString(line) {
-// 				state = answer
-// 			} else {
-// 				question_lines = append(question_lines, line)
-// 			}
-
-// 		case state == answer:
-// 			if commentRegex.MatchString(line) {
-// 				continue
-// 			} else {
-// 				answer_lines = append(answer_lines, line)
-// 			}
-// 		}
-// 	}
-
-// 	card.ID = id
-// 	card.Version = version
-// 	card.Deck = deck
-// 	card.LastReview = lastReview
-// 	card.NextReview = nextReview
-// 	card.Active = active
-// 	card.Question = strings.Join(question_lines, "\n")
-// 	card.Answer = strings.Join(answer_lines, "\n")
-// 	return nil
-// }
+func (card *Card) GetMultiplier(config *config.Config) (float64, error) {
+	if len(card.Reviews) == 0 {
+		return 0.0, nil
+	}
+	result := card.Reviews[0].Result
+	switch result {
+	case Failed:
+		return config.Multipliers.Failed, nil
+	case Hard:
+		return config.Multipliers.Hard, nil
+	case Normal:
+		return config.Multipliers.Normal, nil
+	case Easy:
+		return config.Multipliers.Easy, nil
+	}
+	return 0.0, fmt.Errorf("got unexpected result %q", result)
+}
 
 // // Returns the current review interval, that is, the number of days
 // // between the date the card was last reviewed and the date the card
