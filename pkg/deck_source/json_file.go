@@ -6,6 +6,7 @@ import (
 	"github.com/adamkpickering/clsr/pkg/models"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type JSONFileDeckSource struct {
@@ -13,14 +14,18 @@ type JSONFileDeckSource struct {
 }
 
 func NewJSONFileDeckSource(baseDirectory string) (JSONFileDeckSource, error) {
+	absoluteBaseDirectory, err := filepath.Abs(baseDirectory)
+	if err != nil {
+		return JSONFileDeckSource{}, fmt.Errorf("failed to get directory %q as absolute path: %w", baseDirectory, err)
+	}
 	// check that passed base directory is valid
-	_, err := os.ReadDir(baseDirectory)
+	_, err = os.ReadDir(absoluteBaseDirectory)
 	if err != nil {
 		return JSONFileDeckSource{}, fmt.Errorf("problem with base directory %s: %w", baseDirectory, err)
 	}
 
 	deckSource := JSONFileDeckSource{
-		baseDirectory: baseDirectory,
+		baseDirectory: absoluteBaseDirectory,
 	}
 	return deckSource, nil
 }
@@ -71,7 +76,8 @@ func (deckSource JSONFileDeckSource) ListDecks() ([]string, error) {
 
 	deckNames := []string{}
 	for _, dirEntry := range dirEntries {
-		deckNames = append(deckNames, dirEntry.Name())
+		deckName := strings.TrimSuffix(dirEntry.Name(), ".json")
+		deckNames = append(deckNames, deckName)
 	}
 
 	return deckNames, nil
