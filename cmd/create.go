@@ -34,9 +34,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ErrNotModified error = errors.New("temporary file not modified")
+const (
+	tempFileQuestion = "# Write the question here. This line, as well as the divider below, will be removed.\n"
+	tempFileDivider  = "--------------------\n"
+	tempFileAnswer   = "# Write the answer here. This line, as well as the above divider, will be removed.\n"
+)
 
-const tempFileDivider = "--------------------"
+var ErrNotModified error = errors.New("temporary file not modified")
 
 var createCmd = &cobra.Command{
 	Use:   "create <resource_type> [<resource_name>]",
@@ -70,7 +74,6 @@ var createCmd = &cobra.Command{
 
 			// exec into editor to get Card fields from user
 			card, err := getCardFromUserViaEditor()
-			fmt.Println(card, err)
 			if err == ErrNotModified {
 				return nil
 			} else if err != nil {
@@ -79,7 +82,6 @@ var createCmd = &cobra.Command{
 
 			// add the Card to the Deck and write the Deck
 			deck.Cards = append(deck.Cards, card)
-			fmt.Println(deck)
 			err = deckSource.WriteDeck(deck)
 			if err != nil {
 				return fmt.Errorf("failed to save deck: %w", err)
@@ -130,12 +132,6 @@ func getPreferredEditor() string {
 	return "nano"
 }
 
-func getTempFileContents() string {
-	tempFileQuestion := "# Write the question here. All lines starting with # will be ignored."
-	tempFileAnswer := "# Write the answer here. All lines starting with # will be ignored."
-	return fmt.Sprintf("%s\n%s\n%s\n", tempFileQuestion, tempFileDivider, tempFileAnswer)
-}
-
 // Execs into the user's preferred editor and returns what they enter
 // as a new Card. If the user exits without writing any changes,
 // error is set to ErrNotModified.
@@ -148,7 +144,7 @@ func getCardFromUserViaEditor() (*models.Card, error) {
 	defer os.RemoveAll(tempDir)
 
 	// write temp file into the temp directory
-	initialText := getTempFileContents()
+	initialText := fmt.Sprintf("%s%s%s", tempFileQuestion, tempFileDivider, tempFileAnswer)
 	tempFilePath := filepath.Join(tempDir, "clsr_create_card.txt")
 	err = os.WriteFile(tempFilePath, []byte(initialText), 0644)
 	if err != nil {
@@ -175,8 +171,7 @@ func getCardFromUserViaEditor() (*models.Card, error) {
 	// return if the user did not write the temp file
 	info, err = os.Stat(tempFilePath)
 	if err != nil {
-		fmtString := "failed to get temp file info after potential write: %w"
-		return &models.Card{}, fmt.Errorf(fmtString, err)
+		return &models.Card{}, fmt.Errorf("failed to get temp file info after potential write: %w", err)
 	}
 	if !info.ModTime().After(firstModified) {
 		return &models.Card{}, ErrNotModified
@@ -191,7 +186,9 @@ func getCardFromUserViaEditor() (*models.Card, error) {
 	if len(elements) != 2 {
 		return &models.Card{}, fmt.Errorf(`splitting on "%s" did not produce exactly 2 elements`, tempFileDivider)
 	}
-	card := models.NewCard(elements[0], elements[1])
+	question := strings.ReplaceAll(elements[0], tempFileQuestion, "")
+	answer := strings.ReplaceAll(elements[1], tempFileAnswer, "")
+	card := models.NewCard(question, answer)
 
 	return card, nil
 }
