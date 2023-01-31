@@ -23,11 +23,25 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
-	"github.com/adamkpickering/clsr/models"
+	"github.com/adamkpickering/clsr/pkg/config"
+	"github.com/adamkpickering/clsr/pkg/deck_source"
+	"github.com/adamkpickering/clsr/pkg/models"
 	"github.com/alexeyco/simpletable"
 	"github.com/spf13/cobra"
 )
+
+type cardRow struct {
+	ID           string
+	Deck         string
+	Active       string
+	ReviewCount  string
+	LastReviewed string
+	NextReview   string
+	Question     string
+	Answer       string
+}
 
 var listCmd = &cobra.Command{
 	Use:   "list (decks|cards)",
@@ -53,38 +67,35 @@ func init() {
 
 func listCards() error {
 	// get a DeckSource
-	deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
+	deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 	if err != nil {
 		return fmt.Errorf("failed to get DeckSource: %w", err)
 	}
 
 	// get a list of decks
-	var decks []*models.Deck
+	decks := []*models.Deck{}
 	if len(deckName) > 0 {
-		deck, err := deckSource.LoadDeck(deckName)
+		deck, err := deckSource.ReadDeck(deckName)
 		if err != nil {
-			return fmt.Errorf("failed to load deck %q: %w", deckName, err)
+			return fmt.Errorf("failed to read deck %q: %w", deckName, err)
 		}
 		decks = append(decks, deck)
 	} else {
-		deckNames, err := deckSource.ListDecks()
+		decks, err = getAllDecks(deckSource)
 		if err != nil {
-			return fmt.Errorf("failed to get deck names: %w", err)
-		}
-		for _, deckName := range deckNames {
-			deck, err := deckSource.LoadDeck(deckName)
-			if err != nil {
-				return fmt.Errorf("failed to load deck %q: %w", deckName, err)
-			}
-			decks = append(decks, deck)
+			return fmt.Errorf("failed to get decks: %w", err)
 		}
 	}
 
 	// get a list of cards
-	var cards []*models.Card
+	var cardRows []cardRow
 	for _, deck := range decks {
 		for _, card := range deck.Cards {
-			cards = append(cards, card)
+			cardRow, err := cardToCardRow(card, deck.Name)
+			if err != nil {
+				return fmt.Errorf("failed to convert Card %q to cardRow: %w", card.ID, err)
+			}
+			cardRows = append(cardRows, cardRow)
 		}
 	}
 
@@ -96,25 +107,21 @@ func listCards() error {
 			{Text: "ID"},
 			{Text: "Deck"},
 			{Text: "Active"},
+			{Text: "Review Count"},
 			{Text: "Last Reviewed"},
 			{Text: "Next Review"},
-			{Text: "Due"},
+			// {Text: "Due"},
 		},
 	}
-	for _, card := range cards {
-		var lastReviewed string
-		if card.LastReview.IsZero() {
-			lastReviewed = "never"
-		} else {
-			lastReviewed = card.LastReview.Format(models.DateLayout)
-		}
+	for _, cardRow := range cardRows {
 		row := []*simpletable.Cell{
-			{Text: card.ID},
-			{Text: card.Deck},
-			{Text: fmt.Sprintf("%t", card.Active)},
-			{Text: lastReviewed},
-			{Text: card.NextReview.Format(models.DateLayout)},
-			{Text: fmt.Sprintf("%dd", card.DaysUntilDue())},
+			{Text: cardRow.ID},
+			{Text: cardRow.Deck},
+			{Text: cardRow.Active},
+			{Text: cardRow.ReviewCount},
+			{Text: cardRow.LastReviewed},
+			{Text: cardRow.NextReview},
+			// {Text: fmt.Sprintf("%dd", cardRow.DaysUntilDue())},
 		}
 		table.Body.Cells = append(table.Body.Cells, row)
 	}
@@ -123,9 +130,86 @@ func listCards() error {
 	return nil
 }
 
+func cardToCardRow(card *models.Card, deck string) (cardRow, error) {
+	nextReview, err := calculateNextReview(card)
+	if err != nil {
+		return cardRow{}, fmt.Errorf("failed to calculate next review: %w", err)
+	}
+	cardRow := cardRow{
+		ID:          card.ID,
+		Deck:        deck,
+		Active:      fmt.Sprintf("%t", card.Active),
+		ReviewCount: fmt.Sprintf("%d", len(card.Reviews)),
+		NextReview:  nextReview.Format(models.DateLayout),
+		Question:    card.Question,
+		Answer:      card.Answer,
+	}
+	if len(card.Reviews) == 0 {
+		cardRow.LastReviewed = "never"
+	} else {
+		cardRow.LastReviewed = card.Reviews[0].Datetime.Format(models.DateLayout)
+	}
+	return cardRow, nil
+}
+
+func calculateNextReview(card *models.Card) (time.Time, error) {
+	// get time between reviews
+	var timeBetweenReviews time.Duration
+	reviewsLength := len(card.Reviews)
+	if reviewsLength == 0 {
+		return time.Now(), nil
+	} else if reviewsLength == 1 {
+		timeBetweenReviews = 24 * time.Hour
+	} else {
+		lastReview := card.Reviews[0].Datetime
+		lastLastReview := card.Reviews[1].Datetime
+		timeBetweenReviews = lastReview.Sub(lastLastReview)
+	}
+
+	multiplier, err := getMultiplierFor(card)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to get multiplier: %w", err)
+	}
+
+	timeUntilNextReview := float64(timeBetweenReviews) * multiplier
+	lastReview := card.Reviews[0].Datetime
+	return lastReview.Add(time.Duration(timeUntilNextReview)), nil
+}
+
+func getTimeBetweenReviews(card *models.Card) time.Duration {
+	reviewsLength := len(card.Reviews)
+	if reviewsLength == 0 {
+		return 0
+	} else if reviewsLength == 1 {
+		return 24 * time.Hour
+	} else {
+		lastReview := card.Reviews[0].Datetime
+		lastLastReview := card.Reviews[1].Datetime
+		return lastReview.Sub(lastLastReview)
+	}
+}
+
+func getMultiplierFor(card *models.Card) (float64, error) {
+	if len(card.Reviews) == 0 {
+		return 0.0, nil
+	}
+	result := card.Reviews[0].Result
+	switch result {
+	case models.Failed:
+		return config.DefaultConfig.Multipliers.Failed, nil
+	case models.Hard:
+		return config.DefaultConfig.Multipliers.Hard, nil
+	case models.Normal:
+		return config.DefaultConfig.Multipliers.Normal, nil
+	case models.Easy:
+		return config.DefaultConfig.Multipliers.Easy, nil
+	}
+	return 0.0, fmt.Errorf("got unexpected result %q", result)
+}
+
 func listDecks() error {
 	// get DeckSource
-	deckSource, err := models.NewFlatFileDeckSource(deckDirectory)
+	deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 	if err != nil {
 		return fmt.Errorf("failed to instantiate DeckSource: %w", err)
 	}
@@ -142,18 +226,18 @@ func listDecks() error {
 	table.Header = &simpletable.Header{
 		Cells: []*simpletable.Cell{
 			{Text: "Deck"},
-			{Text: "Cards Due"},
-			{Text: "Active Cards"},
-			{Text: "Inactive Cards"},
+			// {Text: "Cards Due"},
+			// {Text: "Active Cards"},
+			// {Text: "Inactive Cards"},
 			{Text: "Total Cards"},
 		},
 	}
 	for _, deck := range decks {
 		row := []*simpletable.Cell{
 			{Text: deck.Name},
-			{Text: fmt.Sprintf("%d", deck.CountCardsDue())},
-			{Text: fmt.Sprintf("%d", deck.CountActiveCards())},
-			{Text: fmt.Sprintf("%d", deck.CountInactiveCards())},
+			// {Text: fmt.Sprintf("%d", deck.CountCardsDue())},
+			// {Text: fmt.Sprintf("%d", deck.CountActiveCards())},
+			// {Text: fmt.Sprintf("%d", deck.CountInactiveCards())},
 			{Text: fmt.Sprintf("%d", len(deck.Cards))},
 		}
 		table.Body.Cells = append(table.Body.Cells, row)

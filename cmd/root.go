@@ -25,7 +25,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/adamkpickering/clsr/models"
+	"github.com/adamkpickering/clsr/pkg/deck_source"
+	"github.com/adamkpickering/clsr/pkg/models"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
@@ -88,7 +89,7 @@ func initConfig() {
 	}
 }
 
-func getAllDecks(deckSource models.DeckSource) ([]*models.Deck, error) {
+func getAllDecks(deckSource deck_source.DeckSource) ([]*models.Deck, error) {
 	// get list of deck names
 	deckNames, err := deckSource.ListDecks()
 	if err != nil {
@@ -98,9 +99,9 @@ func getAllDecks(deckSource models.DeckSource) ([]*models.Deck, error) {
 	// load decks
 	decks := []*models.Deck{}
 	for _, deckName := range deckNames {
-		deck, err := deckSource.LoadDeck(deckName)
+		deck, err := deckSource.ReadDeck(deckName)
 		if err != nil {
-			return []*models.Deck{}, fmt.Errorf("failed to load deck %q: %w", deckName, err)
+			return []*models.Deck{}, fmt.Errorf("failed to read deck %q: %w", deckName, err)
 		}
 		decks = append(decks, deck)
 	}
