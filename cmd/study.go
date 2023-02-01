@@ -36,6 +36,8 @@ var studyCmd = &cobra.Command{
 	Short: "Study cards that are due",
 	Long:  "\nUsed to study any cards that need to be studied.",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		deckName := *cmd.PersistentFlags().StringP("deck", "d", "", "a specific deck to study")
+
 		// get a DeckSource
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
@@ -51,7 +53,7 @@ var studyCmd = &cobra.Command{
 			}
 			decks = append(decks, deck)
 		} else {
-			decks, err = getAllDecks(deckSource)
+			decks, err = getDecks(deckSource)
 			if err != nil {
 				return fmt.Errorf("failed to get decks: %w", err)
 			}

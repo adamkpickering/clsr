@@ -48,6 +48,8 @@ var createCmd = &cobra.Command{
 	Long:  "\nAllows the user to create clsr resources.",
 	Args:  cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		deckName := *cmd.PersistentFlags().StringP("deck", "d", "", "the name of the deck")
+
 		// check that the directory has been initialized
 		if _, err := os.Stat(deckDirectory); errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("Could not find %s. Please invoke `clsr init`.", deckDirectory)

@@ -42,6 +42,8 @@ There are two states for cards: "active", and "inactive".
 "inactive" means that it will not.`,
 	Args: cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		deckName := *cmd.PersistentFlags().StringP("deck", "d", "", "the deck to which the card will belong")
+
 		// check that the directory has been initialized
 		if _, err := os.Stat(deckDirectory); errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("Could not find %s. Please call `clsr init` and try again.", deckDirectory)

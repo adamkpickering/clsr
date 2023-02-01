@@ -34,8 +34,6 @@ import (
 
 const deckDirectory string = "decks"
 
-var deckName string
-
 var cfgFile string
 
 var rootCmd = &cobra.Command{
@@ -61,8 +59,6 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	configHelp := "config file (default is $HOME/.clsr.yaml)"
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", configHelp)
-	deckHelp := "the deck to act on, if applicable"
-	rootCmd.PersistentFlags().StringVarP(&deckName, "deck", "d", "", deckHelp)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -89,14 +85,21 @@ func initConfig() {
 	}
 }
 
-func getAllDecks(deckSource deck_source.DeckSource) ([]*models.Deck, error) {
-	// get list of deck names
-	deckNames, err := deckSource.ListDecks()
-	if err != nil {
-		return []*models.Deck{}, fmt.Errorf("failed to get deck names: %w", err)
+// If passedDeckNames is empty, reads all decks and returns them as a slice.
+// If passedDeckNames is not empty, reads and returns only the decks named in it.
+func getDecks(deckSource deck_source.DeckSource, passedDeckNames ...string) ([]*models.Deck, error) {
+	var deckNames []string
+	if len(passedDeckNames) == 0 {
+		var err error
+		deckNames, err = deckSource.ListDecks()
+		if err != nil {
+			return []*models.Deck{}, fmt.Errorf("failed to list decks: %w", err)
+		}
+	} else {
+		deckNames = passedDeckNames
 	}
 
-	// load decks
+	// read decks
 	decks := []*models.Deck{}
 	for _, deckName := range deckNames {
 		deck, err := deckSource.ReadDeck(deckName)
