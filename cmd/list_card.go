@@ -41,16 +41,20 @@ type cardRow struct {
 	Answer       string
 }
 
+var listCardFlags = struct {
+	DeckName string
+}{}
+
 func init() {
 	listCmd.AddCommand(listCardCmd)
+	listCardCmd.Flags().StringVarP(&listCardFlags.DeckName, "deck", "d", "", "filter cards by deck")
 }
 
 var listCardCmd = &cobra.Command{
 	Use:   "cards",
 	Short: "List cards",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		deckName := *cmd.Flags().StringP("deck", "d", "", "filter cards by deck")
-		cmd.LocalFlags()
+		deckName := listCardFlags.DeckName
 
 		// get a DeckSource
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)

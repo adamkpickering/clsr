@@ -42,15 +42,21 @@ const (
 
 var ErrNotModified error = errors.New("temporary file not modified")
 
+var createCardFlags = struct {
+	DeckName string
+}{}
+
 func init() {
 	createCmd.AddCommand(createCardCmd)
+	createCardCmd.Flags().StringVarP(&createCardFlags.DeckName, "deck", "d", "", "filter cards by deck")
+	createCardCmd.MarkFlagRequired("deck")
 }
 
 var createCardCmd = &cobra.Command{
 	Use:   "card",
 	Short: "Create card",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		deckName := *cmd.Flags().StringP("deck", "d", "", "the name of the deck")
+		deckName := createCardFlags.DeckName
 
 		// check that the directory has been initialized
 		if _, err := os.Stat(deckDirectory); errors.Is(err, os.ErrNotExist) {

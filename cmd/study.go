@@ -31,12 +31,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var studyFlags = struct {
+	DeckName string
+}{}
+
+func init() {
+	rootCmd.AddCommand(studyCmd)
+	studyCmd.Flags().StringVarP(&studyFlags.DeckName, "deck", "d", "", "study a specific deck")
+}
+
 var studyCmd = &cobra.Command{
 	Use:   "study",
 	Short: "Study cards that are due",
-	Long:  "\nUsed to study any cards that need to be studied.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		deckName := *cmd.PersistentFlags().StringP("deck", "d", "", "a specific deck to study")
+		deckName := studyFlags.DeckName
 
 		// get a DeckSource
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
@@ -103,8 +111,4 @@ var studyCmd = &cobra.Command{
 
 		return nil
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(studyCmd)
 }
