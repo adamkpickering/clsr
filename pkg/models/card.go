@@ -53,53 +53,8 @@ func NewCard(question string, answer string, deck string) *Card {
 	}
 }
 
-func (card *Card) NextReview() (time.Time, error) {
-	var timeBetweenReviews time.Duration
-	reviewsLength := len(card.Reviews)
-	if reviewsLength == 0 {
-		return time.Now(), nil
-	} else if reviewsLength == 1 {
-		timeBetweenReviews = 24 * time.Hour
-	} else {
-		lastReview := card.Reviews[0].Datetime
-		lastLastReview := card.Reviews[1].Datetime
-		timeBetweenReviews = lastReview.Sub(lastLastReview)
-	}
-
-	multiplier, err := card.GetMultiplier(config.DefaultConfig)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to get multiplier: %w", err)
-	}
-
-	timeUntilNextReview := float64(timeBetweenReviews) * multiplier
-	lastReview := card.Reviews[0].Datetime
-	return lastReview.Add(time.Duration(timeUntilNextReview)), nil
-}
-
-func (card *Card) GetMultiplier(config *config.Config) (float64, error) {
-	if len(card.Reviews) == 0 {
-		return 0.0, nil
-	}
-	result := card.Reviews[0].Result
-	switch result {
-	case Failed:
-		return config.Multipliers.Failed, nil
-	case Hard:
-		return config.Multipliers.Hard, nil
-	case Normal:
-		return config.Multipliers.Normal, nil
-	case Easy:
-		return config.Multipliers.Easy, nil
-	}
-	return 0.0, fmt.Errorf("got unexpected result %q", result)
-}
-
-func (card *Card) IsDue() (bool, error) {
-	nextReview, err := card.NextReview()
-	if err != nil {
-		return false, fmt.Errorf("failed to get next review: %w", err)
-	}
-	return time.Now().After(nextReview), nil
+func (card *Card) GetReviewsLatestFirst() []*Review {
+	return card.Reviews
 }
 
 // // Returns the current review interval, that is, the number of days
