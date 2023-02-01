@@ -30,6 +30,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const DateLayout = "2006-01-02"
+
 type cardRow struct {
 	ID           string
 	Deck         string
@@ -127,14 +129,14 @@ func cardToCardRow(card *models.Card, deck string) (cardRow, error) {
 		Deck:        deck,
 		Active:      fmt.Sprintf("%t", card.Active),
 		ReviewCount: fmt.Sprintf("%d", len(card.Reviews)),
-		NextReview:  nextReview.Format(models.DateLayout),
+		NextReview:  nextReview.Format(DateLayout),
 		Question:    card.Question,
 		Answer:      card.Answer,
 	}
 	if len(card.Reviews) == 0 {
 		cardRow.LastReviewed = "never"
 	} else {
-		cardRow.LastReviewed = card.Reviews[0].Datetime.Format(models.DateLayout)
+		cardRow.LastReviewed = card.Reviews[0].Datetime.Format(DateLayout)
 	}
 	return cardRow, nil
 }

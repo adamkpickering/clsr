@@ -1,14 +1,9 @@
 package models
 
 import (
-	// "bytes"
 	"fmt"
-	// "math"
-	"math/rand"
-	// "regexp"
-	// "strconv"
-	// "strings"
 	"github.com/adamkpickering/clsr/pkg/config"
+	"math/rand"
 	"time"
 )
 
@@ -21,28 +16,6 @@ const (
 )
 
 const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
-
-const DateLayout = "2006-01-02"
-
-// var idRegex *regexp.Regexp
-// var versionRegex *regexp.Regexp
-// var deckRegex *regexp.Regexp
-// var lastReviewRegex *regexp.Regexp
-// var nextReviewRegex *regexp.Regexp
-// var activeRegex *regexp.Regexp
-// var dividerRegex *regexp.Regexp
-// var commentRegex *regexp.Regexp
-
-// func init() {
-// 	idRegex = regexp.MustCompile(`^ID *=`)
-// 	versionRegex = regexp.MustCompile(`^Version *=`)
-// 	deckRegex = regexp.MustCompile(`^Deck *=`)
-// 	lastReviewRegex = regexp.MustCompile(`^LastReview *=`)
-// 	nextReviewRegex = regexp.MustCompile(`^NextReview *=`)
-// 	activeRegex = regexp.MustCompile(`^Active *=`)
-// 	dividerRegex = regexp.MustCompile(`^---`)
-// 	commentRegex = regexp.MustCompile(`^ *#`)
-// }
 
 type Card struct {
 	ID       string    `json:"id"`
