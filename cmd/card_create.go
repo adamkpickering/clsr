@@ -42,13 +42,16 @@ const (
 
 var ErrNotModified error = errors.New("temporary file not modified")
 
-var createCmd = &cobra.Command{
-	Use:   "create <resource_type> [<resource_name>]",
-	Short: "Create a resource",
-	Long:  "\nAllows the user to create clsr resources.",
-	Args:  cobra.RangeArgs(1, 2),
+func init() {
+	cardCmd.AddCommand(cardCreateCmd)
+}
+
+var cardCreateCmd = &cobra.Command{
+	Use:   "create",
+	Short: "create card",
+	Long:  "Create a card.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		deckName := *cmd.PersistentFlags().StringP("deck", "d", "", "the name of the deck")
+		deckName := *cmd.Flags().StringP("deck", "d", "", "the name of the deck")
 
 		// check that the directory has been initialized
 		if _, err := os.Stat(deckDirectory); errors.Is(err, os.ErrNotExist) {
@@ -61,67 +64,32 @@ var createCmd = &cobra.Command{
 			return fmt.Errorf("failed to construct DeckSource: %w", err)
 		}
 
-		resourceType := args[0]
-		switch resourceType {
+		// read the deck
+		if len(deckName) == 0 {
+			return errors.New("--deck or -d is required for this command")
+		}
+		deck, err := deckSource.ReadDeck(deckName)
+		if err != nil {
+			return fmt.Errorf("failed to read deck %q: %w", deckName, err)
+		}
 
-		case "card":
-			// read the deck
-			if len(deckName) == 0 {
-				return errors.New("--deck or -d is required for this command")
-			}
-			deck, err := deckSource.ReadDeck(deckName)
-			if err != nil {
-				return fmt.Errorf("failed to read deck %q: %w", deckName, err)
-			}
+		// exec into editor to get Card fields from user
+		card, err := getCardFromUserViaEditor(deckName)
+		if err == ErrNotModified {
+			return nil
+		} else if err != nil {
+			return fmt.Errorf("failed to get user input: %w", err)
+		}
 
-			// exec into editor to get Card fields from user
-			card, err := getCardFromUserViaEditor(deckName)
-			if err == ErrNotModified {
-				return nil
-			} else if err != nil {
-				return fmt.Errorf("failed to get user input: %w", err)
-			}
-
-			// add the Card to the Deck and write the Deck
-			deck.Cards = append(deck.Cards, card)
-			err = deckSource.WriteDeck(deck)
-			if err != nil {
-				return fmt.Errorf("failed to save deck: %w", err)
-			}
-
-		case "deck":
-			// get deckName
-			if len(args) == 2 {
-				deckName = args[1]
-			}
-			if len(deckName) == 0 {
-				msg := "must specify deck name either as positional arg or in --deck/-d flag"
-				return errors.New(msg)
-			}
-
-			// check for an existing deck of this name
-			_, err := deckSource.ReadDeck(deckName)
-			if err == nil {
-				return fmt.Errorf(`deck "%s" already exists`, deckName)
-			}
-
-			// create the deck
-			deck := models.NewDeck(deckName)
-			err = deckSource.WriteDeck(deck)
-			if err != nil {
-				return fmt.Errorf("failed to write deck %q: %w", deckName, err)
-			}
-
-		default:
-			return fmt.Errorf("%q is not a valid resource type", resourceType)
+		// add the Card to the Deck and write the Deck
+		deck.Cards = append(deck.Cards, card)
+		err = deckSource.WriteDeck(deck)
+		if err != nil {
+			return fmt.Errorf("failed to save deck: %w", err)
 		}
 
 		return nil
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(createCmd)
 }
 
 // Returns the editor specified in the EDITOR env var. If EDITOR is not specified,
