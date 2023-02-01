@@ -42,13 +42,12 @@ type cardRow struct {
 }
 
 func init() {
-	cardCmd.AddCommand(cardListCmd)
+	listCmd.AddCommand(listCardCmd)
 }
 
-var cardListCmd = &cobra.Command{
-	Use:   "ls",
-	Short: "list cards",
-	Long:  "Lists cards.",
+var listCardCmd = &cobra.Command{
+	Use:   "cards",
+	Short: "List cards",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckName := *cmd.Flags().StringP("deck", "d", "", "filter cards by deck")
 		cmd.LocalFlags()

@@ -25,11 +25,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var cardCmd = &cobra.Command{
-	Use:   "card",
-	Short: "Operations related to cards.",
+var listCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List resources",
 }
 
 func init() {
-	rootCmd.AddCommand(cardCmd)
+	rootCmd.AddCommand(listCmd)
 }

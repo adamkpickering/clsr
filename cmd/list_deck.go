@@ -22,50 +22,56 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"os"
 
 	"github.com/adamkpickering/clsr/pkg/deck_source"
-	"github.com/adamkpickering/clsr/pkg/models"
+	"github.com/alexeyco/simpletable"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	deckCmd.AddCommand(deckCreateCmd)
+	listCmd.AddCommand(listDeckCmd)
 }
 
-var deckCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "create deck",
-	Long:  "Create a deck.",
-	Args:  cobra.ExactArgs(1),
+var listDeckCmd = &cobra.Command{
+	Use:   "decks",
+	Short: "List decks",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		deckName := args[0]
-
-		// check that the directory has been initialized
-		if _, err := os.Stat(deckDirectory); errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("Could not find %s. Please invoke `clsr init`.", deckDirectory)
-		}
-
-		// construct DeckSource
+		// get DeckSource
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
-			return fmt.Errorf("failed to construct DeckSource: %w", err)
+			return fmt.Errorf("failed to instantiate DeckSource: %w", err)
 		}
 
-		// check for an existing deck of this name
-		_, err = deckSource.ReadDeck(deckName)
-		if err == nil {
-			return fmt.Errorf(`deck %q already exists`, deckName)
-		}
-
-		// create the deck
-		deck := models.NewDeck(deckName)
-		err = deckSource.WriteDeck(deck)
+		// get all decks
+		decks, err := getDecks(deckSource)
 		if err != nil {
-			return fmt.Errorf("failed to write deck %q: %w", deckName, err)
+			return fmt.Errorf("failed to get decks: %w", err)
 		}
+
+		// display decks in table
+		table := simpletable.New()
+		table.SetStyle(simpletable.StyleCompactClassic)
+		table.Header = &simpletable.Header{
+			Cells: []*simpletable.Cell{
+				{Text: "Deck"},
+				// {Text: "Cards Due"},
+				// {Text: "Active Cards"},
+				// {Text: "Inactive Cards"},
+				{Text: "Total Cards"},
+			},
+		}
+		for _, deck := range decks {
+			row := []*simpletable.Cell{
+				{Text: deck.Name},
+				// {Text: fmt.Sprintf("%d", deck.CountCardsDue())},
+				// {Text: fmt.Sprintf("%d", deck.CountActiveCards())},
+				// {Text: fmt.Sprintf("%d", deck.CountInactiveCards())},
+				{Text: fmt.Sprintf("%d", len(deck.Cards))},
+			}
+			table.Body.Cells = append(table.Body.Cells, row)
+		}
+		fmt.Println(table.String())
 
 		return nil
 	},

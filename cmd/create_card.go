@@ -43,13 +43,12 @@ const (
 var ErrNotModified error = errors.New("temporary file not modified")
 
 func init() {
-	cardCmd.AddCommand(cardCreateCmd)
+	createCmd.AddCommand(createCardCmd)
 }
 
-var cardCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "create card",
-	Long:  "Create a card.",
+var createCardCmd = &cobra.Command{
+	Use:   "card",
+	Short: "Create card",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckName := *cmd.Flags().StringP("deck", "d", "", "the name of the deck")
 
