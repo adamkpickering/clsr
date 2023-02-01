@@ -31,11 +31,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var studyFlags = struct {
+	DeckName string
+}{}
+
+func init() {
+	rootCmd.AddCommand(studyCmd)
+	studyCmd.Flags().StringVarP(&studyFlags.DeckName, "deck", "d", "", "study a specific deck")
+}
+
 var studyCmd = &cobra.Command{
 	Use:   "study",
 	Short: "Study cards that are due",
-	Long:  "\nUsed to study any cards that need to be studied.",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		deckName := studyFlags.DeckName
+
 		// get a DeckSource
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
@@ -44,17 +54,13 @@ var studyCmd = &cobra.Command{
 
 		// get a list of decks
 		decks := []*models.Deck{}
-		if len(deckName) > 0 {
-			deck, err := deckSource.ReadDeck(deckName)
-			if err != nil {
-				return fmt.Errorf("failed to read deck %q: %w", deckName, err)
-			}
-			decks = append(decks, deck)
+		if cmd.Flags().Changed("deck") {
+			decks, err = getDecks(deckSource, deckName)
 		} else {
-			decks, err = getAllDecks(deckSource)
-			if err != nil {
-				return fmt.Errorf("failed to get decks: %w", err)
-			}
+			decks, err = getDecks(deckSource)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to get decks: %w", err)
 		}
 
 		// get a list of cards to study
@@ -101,8 +107,4 @@ var studyCmd = &cobra.Command{
 
 		return nil
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(studyCmd)
 }
