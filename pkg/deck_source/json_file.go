@@ -6,6 +6,7 @@ import (
 	"github.com/adamkpickering/clsr/pkg/models"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -46,9 +47,13 @@ func (deckSource JSONFileDeckSource) ReadDeck(name string) (*models.Deck, error)
 	if err != nil {
 		return &models.Deck{}, fmt.Errorf("failed to parse contents of deck: %w", err)
 	}
+
+	// do any post-parse changes to cards that are needed
 	for _, card := range deck.Cards {
 		card.Deck = deck.Name
+		sort.Stable(card.Reviews)
 	}
+
 	return deck, nil
 }
 

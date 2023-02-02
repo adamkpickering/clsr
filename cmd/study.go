@@ -24,8 +24,10 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/adamkpickering/clsr/pkg/config"
 	"github.com/adamkpickering/clsr/pkg/deck_source"
 	"github.com/adamkpickering/clsr/pkg/models"
+	"github.com/adamkpickering/clsr/pkg/scheduler"
 	"github.com/adamkpickering/clsr/views"
 	"github.com/gdamore/tcell/v2"
 	"github.com/spf13/cobra"
@@ -46,11 +48,12 @@ var studyCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckName := studyFlags.DeckName
 
-		// get a DeckSource
+		// initialize objects we need
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
 			return fmt.Errorf("failed to get DeckSource: %w", err)
 		}
+		scheduler := scheduler.NewTwoReviewScheduler(config.DefaultConfig)
 
 		// get a list of decks
 		decks := []*models.Deck{}
@@ -67,7 +70,7 @@ var studyCmd = &cobra.Command{
 		var cardsToStudy []*models.Card
 		for _, deck := range decks {
 			for _, card := range deck.Cards {
-				isDue, err := card.IsDue()
+				isDue, err := scheduler.IsDue(card)
 				if err != nil {
 					return fmt.Errorf("failed to determine whether card %q is due: %w", card.ID, err)
 				}
