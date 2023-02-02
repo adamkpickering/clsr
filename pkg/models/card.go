@@ -47,6 +47,14 @@ func NewCard(question string, answer string, deck string) *Card {
 		Answer:   answer,
 		Active:   true,
 		Modified: true,
-		Reviews:  []*Review{},
+		Reviews:  ReviewSlice{},
 	}
+}
+
+func (card *Card) Copy() *Card {
+	newCard := *card
+	newReviews := make(ReviewSlice, len(card.Reviews))
+	copy(newReviews, card.Reviews)
+	newCard.Reviews = newReviews
+	return &newCard
 }
