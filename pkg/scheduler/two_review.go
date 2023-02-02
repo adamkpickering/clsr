@@ -7,6 +7,7 @@ import (
 
 	"github.com/adamkpickering/clsr/pkg/config"
 	"github.com/adamkpickering/clsr/pkg/models"
+	"github.com/adamkpickering/clsr/pkg/utils"
 )
 
 // A scheduler that looks at the most recent two reviews
@@ -32,7 +33,7 @@ func (scheduler *TwoReviewScheduler) IsDue(card *models.Card) (bool, error) {
 		return false, fmt.Errorf("failed to get next review: %w", err)
 	}
 
-	if datesEqual(reviews[0].Datetime, nextReview) {
+	if utils.DatesEqual(reviews[0].Datetime, nextReview) {
 		return time.Now().After(nextReview), nil
 	} else {
 		nextReviewYear, nextReviewMonth, nextReviewDay := nextReview.Date()
@@ -97,13 +98,6 @@ func getMultiplierFor(result models.ReviewResult, config *config.Config) (float6
 	default:
 		return 0.0, fmt.Errorf("got unexpected result %q", result)
 	}
-}
-
-// Tells the caller whether the two passed times have the same date.
-func datesEqual(time1 time.Time, time2 time.Time) bool {
-	time1Year, time1Month, time1Day := time1.Date()
-	time2Year, time2Month, time2Day := time2.Date()
-	return time1Year == time2Year && time1Month == time2Month && time1Day == time2Day
 }
 
 func getSortedReviewsCopy(card *models.Card) models.ReviewSlice {

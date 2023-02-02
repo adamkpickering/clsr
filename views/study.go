@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/adamkpickering/clsr/pkg/models"
+	"github.com/adamkpickering/clsr/pkg/scheduler"
+	"github.com/adamkpickering/clsr/pkg/utils"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -20,16 +23,24 @@ const (
 	questionAndAnswerState
 )
 
+const (
+	failedKey rune = '1'
+	hardKey   rune = '2'
+	normalKey rune = '3'
+	easyKey   rune = '4'
+)
+
 var keyToReviewResult = map[rune]models.ReviewResult{
-	'1': models.Failed,
-	'2': models.Hard,
-	'3': models.Normal,
-	'4': models.Easy,
+	failedKey: models.Failed,
+	hardKey:   models.Hard,
+	normalKey: models.Normal,
+	easyKey:   models.Easy,
 }
 
 type StudySession struct {
-	Screen tcell.Screen
-	Cards  []*models.Card
+	Screen    tcell.Screen
+	Cards     []*models.Card
+	Scheduler scheduler.Scheduler
 }
 
 func (ss StudySession) Run() error {
@@ -48,7 +59,7 @@ func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) 
 	for {
 		// render screen
 		ss.Screen.Clear()
-		err := ss.render(card, state, totalCards, cardNumber)
+		err := ss.render(card, state, totalCards, cardNumber, ss.Scheduler)
 		if err != nil {
 			return err
 		}
@@ -105,7 +116,7 @@ func (ss StudySession) processString(rawString string) []string {
 	return stringLines
 }
 
-func (ss StudySession) render(card *models.Card, state studyState, totalCards, cardNumber int) error {
+func (ss StudySession) render(card *models.Card, state studyState, totalCards, cardNumber int, scheduler scheduler.Scheduler) error {
 	var lines []string
 
 	// add the status line
@@ -139,24 +150,32 @@ func (ss StudySession) render(card *models.Card, state studyState, totalCards, c
 	case questionState:
 		lines = append(lines, " <space>/<enter>: show answer")
 	case questionAndAnswerState:
-		// failedMultiplier, _ := getMultiplierFromRune(failedKey)
-		// failed := card.GetMultipliedReviewInterval(failedMultiplier)
-		// hardMultiplier, _ := getMultiplierFromRune(hardKey)
-		// hard := card.GetMultipliedReviewInterval(hardMultiplier)
-		// normalMultiplier, _ := getMultiplierFromRune(normalKey)
-		// normal := card.GetMultipliedReviewInterval(normalMultiplier)
-		// easyMultiplier, _ := getMultiplierFromRune(easyKey)
-		// easy := card.GetMultipliedReviewInterval(easyMultiplier)
-		// keyLineFmt := " <%c>: failed (%dd)\t\t <%c>: hard (%dd)\t\t" +
-		// 	"<%c>: normal (%dd)\t\t<%c>: easy (%dd)"
-		// keyLine := fmt.Sprintf(
-		// 	keyLineFmt,
-		// 	failedKey, failed,
-		// 	hardKey, hard,
-		// 	normalKey, normal,
-		// 	easyKey, easy,
-		// )
-		// lines = append(lines, keyLine)
+		failed, err := getReadableDurationForResult(models.Failed, card, scheduler)
+		if err != nil {
+			return fmt.Errorf("failed to get readable duration for Failed: %w", err)
+		}
+		hard, err := getReadableDurationForResult(models.Hard, card, scheduler)
+		if err != nil {
+			return fmt.Errorf("failed to get readable duration for Hard: %w", err)
+		}
+		normal, err := getReadableDurationForResult(models.Normal, card, scheduler)
+		if err != nil {
+			return fmt.Errorf("failed to get readable duration for Normal: %w", err)
+		}
+		easy, err := getReadableDurationForResult(models.Easy, card, scheduler)
+		if err != nil {
+			return fmt.Errorf("failed to get readable duration for Easy: %w", err)
+		}
+		keyLineFmt := " <%c>: failed (%s)\t\t <%c>: hard (%s)\t\t" +
+			"<%c>: normal (%s)\t\t<%c>: easy (%s)"
+		keyLine := fmt.Sprintf(
+			keyLineFmt,
+			failedKey, failed,
+			hardKey, hard,
+			normalKey, normal,
+			easyKey, easy,
+		)
+		lines = append(lines, keyLine)
 	}
 	lines = append(lines, " <i>: set card to inactive")
 	lines = append(lines, " <ctrl-C>/<escape>/<q>: save studied cards & exit")
@@ -173,17 +192,37 @@ func (ss StudySession) render(card *models.Card, state studyState, totalCards, c
 	return nil
 }
 
-// func getMultiplierFromRune(key rune) (float64, error) {
-// 	switch key {
-// 	case failedKey:
-// 		return 0.0, nil
-// 	case hardKey:
-// 		return 1.0, nil
-// 	case normalKey:
-// 		return 1.5, nil
-// 	case easyKey:
-// 		return 2.0, nil
-// 	default:
-// 		return 0.0, fmt.Errorf(`invalid key "%c"`, key)
-// 	}
-// }
+func getReadableDurationForResult(result models.ReviewResult, card *models.Card, scheduler scheduler.Scheduler) (string, error) {
+	nextReview, err := getHypotheticalNextReview(result, card, scheduler)
+	if err != nil {
+		return "", fmt.Errorf("failed to get hypothetical next review: %w", err)
+	}
+	return nextReviewToReadableDuration(nextReview), nil
+}
+
+func getHypotheticalNextReview(result models.ReviewResult, card *models.Card, scheduler scheduler.Scheduler) (time.Time, error) {
+	newCard := card.Copy()
+	newReview := models.NewReview(result)
+	newCard.Reviews = append(models.ReviewSlice{newReview}, newCard.Reviews...)
+	return scheduler.GetNextReview(card)
+}
+
+// Returns the time in hours (if on the same day) or days (if on different days)
+// until the next review as a human-readable string. For example, "11h" or "23d".
+func nextReviewToReadableDuration(nextReview time.Time) string {
+	now := time.Now()
+	if now.After(nextReview) {
+		return "now"
+	}
+	if utils.DatesEqual(now, nextReview) {
+		difference := nextReview.Sub(now)
+		hours := difference / time.Hour
+		return fmt.Sprintf("%dh", hours)
+	} else {
+		midnightLastNight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		difference := nextReview.Sub(midnightLastNight)
+		day := 24 * time.Hour
+		days := difference / day
+		return fmt.Sprintf("%dd", days)
+	}
+}

@@ -92,8 +92,9 @@ var studyCmd = &cobra.Command{
 
 		// study cards
 		ss := &views.StudySession{
-			Screen: screen,
-			Cards:  cardsToStudy,
+			Screen:    screen,
+			Cards:     cardsToStudy,
+			Scheduler: scheduler,
 		}
 		err = ss.Run()
 		if err != nil && err != views.ErrExit {
