@@ -7,6 +7,14 @@ import (
 )
 
 func TestDeck(t *testing.T) {
+	t.Run("NewDeck", func(t *testing.T) {
+		name := "test_deck"
+		deck := NewDeck(name)
+		if deck.Name != name {
+			t.Errorf("deck has name %s but should have name %s", deck.Name, name)
+		}
+	})
+
 	t.Run("JSONMarshal", func(t *testing.T) {
 		deckName := "test_deck"
 		deck := NewDeck(deckName)
@@ -19,6 +27,7 @@ func TestDeck(t *testing.T) {
 		}
 		fmt.Printf("marshaled deck to %v\n", string(result))
 	})
+
 	t.Run("JSONUnmarshal", func(t *testing.T) {
 		input := []byte(`{
   "name": "test_deck",

@@ -41,6 +41,7 @@ func (scheduler *TwoReviewScheduler) IsDue(card *models.Card) (bool, error) {
 	}
 }
 
+// Returns the datetime that the card is next due.
 func (scheduler *TwoReviewScheduler) GetNextReview(card *models.Card) (time.Time, error) {
 	reviews := getSortedReviewsCopy(card)
 	reviewsLength := len(reviews)

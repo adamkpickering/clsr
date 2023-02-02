@@ -22,7 +22,7 @@ func NewJSONFileDeckSource(baseDirectory string) (JSONFileDeckSource, error) {
 	// check that passed base directory is valid
 	_, err = os.ReadDir(absoluteBaseDirectory)
 	if err != nil {
-		return JSONFileDeckSource{}, fmt.Errorf("problem with base directory %s: %w", baseDirectory, err)
+		return JSONFileDeckSource{}, fmt.Errorf("problem with base directory %q: %w", baseDirectory, err)
 	}
 
 	deckSource := JSONFileDeckSource{

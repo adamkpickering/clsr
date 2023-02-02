@@ -1,8 +1,0 @@
-Version = 0
-LastReview = 2021-04-12
-NextReview = 2021-09-13
-Active = true
----
-Here's another question. What's your answer?
----
-You didn't specify a question.
