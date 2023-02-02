@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/adamkpickering/clsr/pkg/config"
@@ -21,7 +22,11 @@ func NewTwoReviewScheduler(config *config.Config) *TwoReviewScheduler {
 }
 
 func (scheduler *TwoReviewScheduler) IsDue(card *models.Card) (bool, error) {
-	reviews := card.GetReviewsLatestFirst()
+	// Get a sorted copy of reviews
+	reviews := models.ReviewSlice{}
+	copy(reviews, card.Reviews)
+	sort.Sort(reviews)
+
 	if len(reviews) == 0 {
 		return true, nil
 	}
@@ -41,9 +46,12 @@ func (scheduler *TwoReviewScheduler) IsDue(card *models.Card) (bool, error) {
 }
 
 func (scheduler *TwoReviewScheduler) GetNextReview(card *models.Card) (time.Time, error) {
-	reviews := card.GetReviewsLatestFirst()
-	reviewsLength := len(reviews)
+	// Get a sorted copy of reviews
+	reviews := models.ReviewSlice{}
+	copy(reviews, card.Reviews)
+	sort.Sort(reviews)
 
+	reviewsLength := len(reviews)
 	if reviewsLength == 0 {
 		return time.Now(), nil
 	}

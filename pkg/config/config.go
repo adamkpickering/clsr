@@ -28,7 +28,7 @@ type IntervalMultipliers struct {
 	Easy   float64
 }
 
-var DefaultConfig = Config{
+var DefaultConfig = &Config{
 	FailedReviewInterval: 4,
 	SecondReviewIntervals: SecondReviewIntervals{
 		Hard:   4,

@@ -24,8 +24,10 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/adamkpickering/clsr/pkg/config"
 	"github.com/adamkpickering/clsr/pkg/deck_source"
 	"github.com/adamkpickering/clsr/pkg/models"
+	"github.com/adamkpickering/clsr/pkg/scheduler"
 	"github.com/alexeyco/simpletable"
 	"github.com/spf13/cobra"
 )
@@ -63,6 +65,7 @@ var listCardCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to get DeckSource: %w", err)
 		}
+		scheduler := scheduler.NewTwoReviewScheduler(config.DefaultConfig)
 
 		// get a list of decks
 		decks := []*models.Deck{}
@@ -79,7 +82,7 @@ var listCardCmd = &cobra.Command{
 		var cardRows []cardRow
 		for _, deck := range decks {
 			for _, card := range deck.Cards {
-				cardRow, err := cardToCardRow(card, deck.Name)
+				cardRow, err := cardToCardRow(card, scheduler)
 				if err != nil {
 					return fmt.Errorf("failed to convert Card %q to cardRow: %w", card.ID, err)
 				}
@@ -119,14 +122,14 @@ var listCardCmd = &cobra.Command{
 	},
 }
 
-func cardToCardRow(card *models.Card, deck string) (cardRow, error) {
-	nextReview, err := card.NextReview()
+func cardToCardRow(card *models.Card, scheduler scheduler.Scheduler) (cardRow, error) {
+	nextReview, err := scheduler.GetNextReview(card)
 	if err != nil {
 		return cardRow{}, fmt.Errorf("failed to get next review: %w", err)
 	}
 	cardRow := cardRow{
 		ID:          card.ID,
-		Deck:        deck,
+		Deck:        card.Deck,
 		Active:      fmt.Sprintf("%t", card.Active),
 		ReviewCount: fmt.Sprintf("%d", len(card.Reviews)),
 		NextReview:  nextReview.Format(DateLayout),
