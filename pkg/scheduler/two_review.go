@@ -107,7 +107,7 @@ func datesEqual(time1 time.Time, time2 time.Time) bool {
 }
 
 func getSortedReviewsCopy(card *models.Card) models.ReviewSlice {
-	reviews := models.ReviewSlice{}
+	reviews := make(models.ReviewSlice, len(card.Reviews))
 	copy(reviews, card.Reviews)
 	sort.Stable(reviews)
 	return reviews
