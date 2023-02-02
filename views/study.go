@@ -92,7 +92,7 @@ func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) 
 					continue
 				}
 				newReview := models.NewReview(reviewResult)
-				card.Reviews = append(card.Reviews, newReview)
+				card.Reviews = append(models.ReviewSlice{newReview}, card.Reviews...)
 				return nil
 			}
 		}

@@ -22,11 +22,7 @@ func NewTwoReviewScheduler(config *config.Config) *TwoReviewScheduler {
 }
 
 func (scheduler *TwoReviewScheduler) IsDue(card *models.Card) (bool, error) {
-	// Get a sorted copy of reviews
-	reviews := models.ReviewSlice{}
-	copy(reviews, card.Reviews)
-	sort.Sort(reviews)
-
+	reviews := getSortedReviewsCopy(card)
 	if len(reviews) == 0 {
 		return true, nil
 	}
@@ -46,11 +42,7 @@ func (scheduler *TwoReviewScheduler) IsDue(card *models.Card) (bool, error) {
 }
 
 func (scheduler *TwoReviewScheduler) GetNextReview(card *models.Card) (time.Time, error) {
-	// Get a sorted copy of reviews
-	reviews := models.ReviewSlice{}
-	copy(reviews, card.Reviews)
-	sort.Sort(reviews)
-
+	reviews := getSortedReviewsCopy(card)
 	reviewsLength := len(reviews)
 	if reviewsLength == 0 {
 		return time.Now(), nil
@@ -111,4 +103,11 @@ func datesEqual(time1 time.Time, time2 time.Time) bool {
 	time1Year, time1Month, time1Day := time1.Date()
 	time2Year, time2Month, time2Day := time2.Date()
 	return time1Year == time2Year && time1Month == time2Month && time1Day == time2Day
+}
+
+func getSortedReviewsCopy(card *models.Card) models.ReviewSlice {
+	reviews := models.ReviewSlice{}
+	copy(reviews, card.Reviews)
+	sort.Stable(reviews)
+	return reviews
 }
