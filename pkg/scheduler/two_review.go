@@ -7,6 +7,7 @@ import (
 
 	"github.com/adamkpickering/clsr/pkg/config"
 	"github.com/adamkpickering/clsr/pkg/models"
+	"github.com/adamkpickering/clsr/pkg/utils"
 )
 
 // A scheduler that looks at the most recent two reviews
@@ -32,7 +33,7 @@ func (scheduler *TwoReviewScheduler) IsDue(card *models.Card) (bool, error) {
 		return false, fmt.Errorf("failed to get next review: %w", err)
 	}
 
-	if datesEqual(reviews[0].Datetime, nextReview) {
+	if utils.DatesEqual(reviews[0].Datetime, nextReview) {
 		return time.Now().After(nextReview), nil
 	} else {
 		nextReviewYear, nextReviewMonth, nextReviewDay := nextReview.Date()
@@ -50,15 +51,16 @@ func (scheduler *TwoReviewScheduler) GetNextReview(card *models.Card) (time.Time
 	}
 
 	if reviews[0].Result == models.Failed {
-		interval := scheduler.config.FailedReviewInterval
+		interval := scheduler.config.FailedReviewInterval * uint(time.Hour)
 		return reviews[0].Datetime.Add(time.Duration(interval)), nil
 	}
 
 	if reviewsLength == 1 || (reviewsLength == 2 && reviews[1].Result == models.Failed) {
-		interval, err := getSecondReviewIntervalFor(reviews[0].Result, scheduler.config)
+		intervalInHours, err := getSecondReviewIntervalFor(reviews[0].Result, scheduler.config)
 		if err != nil {
 			return time.Time{}, fmt.Errorf("failed to get second review interval: %w", err)
 		}
+		interval := intervalInHours * uint(time.Hour)
 		return reviews[0].Datetime.Add(time.Duration(interval)), nil
 	}
 
@@ -99,15 +101,8 @@ func getMultiplierFor(result models.ReviewResult, config *config.Config) (float6
 	}
 }
 
-// Tells the caller whether the two passed times have the same date.
-func datesEqual(time1 time.Time, time2 time.Time) bool {
-	time1Year, time1Month, time1Day := time1.Date()
-	time2Year, time2Month, time2Day := time2.Date()
-	return time1Year == time2Year && time1Month == time2Month && time1Day == time2Day
-}
-
 func getSortedReviewsCopy(card *models.Card) models.ReviewSlice {
-	reviews := models.ReviewSlice{}
+	reviews := make(models.ReviewSlice, len(card.Reviews))
 	copy(reviews, card.Reviews)
 	sort.Stable(reviews)
 	return reviews

@@ -19,10 +19,10 @@ type Review struct {
 	Datetime time.Time    `json:"datetime"`
 }
 
-type ReviewSlice []*Review
+type ReviewSlice []Review
 
-func NewReview(result ReviewResult) *Review {
-	return &Review{
+func NewReview(result ReviewResult) Review {
+	return Review{
 		Version:  0,
 		Result:   result,
 		Datetime: time.Now(),
