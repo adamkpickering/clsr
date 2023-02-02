@@ -70,9 +70,6 @@ var createCardCmd = &cobra.Command{
 		}
 
 		// read the deck
-		if len(deckName) == 0 {
-			return errors.New("--deck or -d is required for this command")
-		}
 		deck, err := deckSource.ReadDeck(deckName)
 		if err != nil {
 			return fmt.Errorf("failed to read deck %q: %w", deckName, err)

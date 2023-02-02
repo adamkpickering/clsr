@@ -40,8 +40,6 @@ var setCardCmd = &cobra.Command{
 	Short: "Set whether a card is active or inactive",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		deckName := *cmd.PersistentFlags().StringP("deck", "d", "", "the deck to which the card will belong")
-
 		// check that the directory has been initialized
 		if _, err := os.Stat(deckDirectory); errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("Could not find %s. Please call `clsr init` and try again.", deckDirectory)
@@ -53,48 +51,45 @@ var setCardCmd = &cobra.Command{
 			return fmt.Errorf("failed to construct DeckSource: %w", err)
 		}
 
-		// get deck
-		if len(deckName) == 0 {
-			return errors.New("must specify --deck/-d")
-		}
-		deck, err := deckSource.ReadDeck(deckName)
+		// get decks
+		decks, err := getDecks(deckSource)
 		if err != nil {
-			return fmt.Errorf("failed to read deck %q: %w", deckName, err)
+			return fmt.Errorf("failed to get decks: %w", err)
 		}
 
-		// get the card from the deck
-		cardID := args[1]
+		// get the card from its deck
+		cardID := args[0]
 		card := &models.Card{}
-		for _, deckCard := range deck.Cards {
-			if deckCard.ID == cardID {
-				card = deckCard
-				break
+		deck := &models.Deck{}
+		for _, thisDeck := range decks {
+			for _, thisCard := range thisDeck.Cards {
+				if thisCard.ID == cardID {
+					if len(card.ID) != 0 {
+						return fmt.Errorf("found a second card with id %q", cardID)
+					}
+					card = thisCard
+					deck = thisDeck
+				}
 			}
 		}
 		if len(card.ID) == 0 {
 			return fmt.Errorf("could not find card with ID %q", cardID)
 		}
 
-		resourceType := args[0]
-		adjective := args[2]
-		switch resourceType {
-		case "card":
-			switch adjective {
-			case "active":
-				if !card.Active {
-					card.Active = true
-					card.Modified = true
-				}
-			case "inactive":
-				if card.Active {
-					card.Active = false
-					card.Modified = true
-				}
-			default:
-				return fmt.Errorf("invalid adjective %q", adjective)
+		adjective := args[1]
+		switch adjective {
+		case "active":
+			if !card.Active {
+				card.Active = true
+				card.Modified = true
+			}
+		case "inactive":
+			if card.Active {
+				card.Active = false
+				card.Modified = true
 			}
 		default:
-			return fmt.Errorf("invalid resource type %q", resourceType)
+			return fmt.Errorf("invalid adjective %q", adjective)
 		}
 
 		// write deck
