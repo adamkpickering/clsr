@@ -23,16 +23,16 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/adamkpickering/clsr/pkg/config"
 	"github.com/adamkpickering/clsr/pkg/deck_source"
 	"github.com/adamkpickering/clsr/pkg/models"
 	"github.com/adamkpickering/clsr/pkg/scheduler"
+	"github.com/adamkpickering/clsr/pkg/utils"
 	"github.com/alexeyco/simpletable"
 	"github.com/spf13/cobra"
 )
-
-const DateLayout = "2006-01-02"
 
 type cardRow struct {
 	ID           string
@@ -123,23 +123,37 @@ var listCardCmd = &cobra.Command{
 }
 
 func cardToCardRow(card *models.Card, scheduler scheduler.Scheduler) (cardRow, error) {
-	nextReview, err := scheduler.GetNextReview(card)
-	if err != nil {
-		return cardRow{}, fmt.Errorf("failed to get next review: %w", err)
-	}
-	cardRow := cardRow{
+	row := cardRow{
 		ID:          card.ID,
 		Deck:        card.Deck,
 		Active:      fmt.Sprintf("%t", card.Active),
 		ReviewCount: fmt.Sprintf("%d", len(card.Reviews)),
-		NextReview:  nextReview.Format(DateLayout),
 		Question:    card.Question,
 		Answer:      card.Answer,
 	}
-	if len(card.Reviews) == 0 {
-		cardRow.LastReviewed = "never"
-	} else {
-		cardRow.LastReviewed = card.Reviews[0].Datetime.Format(DateLayout)
+
+	// deal with NextReview
+	nextReview, err := scheduler.GetNextReview(card)
+	if err != nil {
+		return cardRow{}, fmt.Errorf("failed to get next review: %w", err)
 	}
-	return cardRow, nil
+	due, err := scheduler.IsDue(card)
+	if err != nil {
+		return cardRow{}, fmt.Errorf("failed during check whether card is due: %w", err)
+	}
+	if due {
+		row.NextReview = "due"
+	} else {
+		row.NextReview = utils.GetReadableTimeDifference(time.Now(), nextReview)
+	}
+
+	// deal with LastReviewed
+	if len(card.Reviews) == 0 {
+		row.LastReviewed = "N/A"
+	} else {
+		readableTimeDifference := utils.GetReadableTimeDifference(card.Reviews[0].Datetime, time.Now())
+		lastReviewed := fmt.Sprintf("%s ago", readableTimeDifference)
+		row.LastReviewed = lastReviewed
+	}
+	return row, nil
 }

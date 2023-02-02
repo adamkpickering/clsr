@@ -51,15 +51,16 @@ func (scheduler *TwoReviewScheduler) GetNextReview(card *models.Card) (time.Time
 	}
 
 	if reviews[0].Result == models.Failed {
-		interval := scheduler.config.FailedReviewInterval
+		interval := scheduler.config.FailedReviewInterval * uint(time.Hour)
 		return reviews[0].Datetime.Add(time.Duration(interval)), nil
 	}
 
 	if reviewsLength == 1 || (reviewsLength == 2 && reviews[1].Result == models.Failed) {
-		interval, err := getSecondReviewIntervalFor(reviews[0].Result, scheduler.config)
+		intervalInHours, err := getSecondReviewIntervalFor(reviews[0].Result, scheduler.config)
 		if err != nil {
 			return time.Time{}, fmt.Errorf("failed to get second review interval: %w", err)
 		}
+		interval := intervalInHours * uint(time.Hour)
 		return reviews[0].Datetime.Add(time.Duration(interval)), nil
 	}
 

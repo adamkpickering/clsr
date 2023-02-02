@@ -197,32 +197,12 @@ func getReadableDurationForResult(result models.ReviewResult, card *models.Card,
 	if err != nil {
 		return "", fmt.Errorf("failed to get hypothetical next review: %w", err)
 	}
-	return nextReviewToReadableDuration(nextReview), nil
+	return utils.GetReadableTimeDifference(time.Now(), nextReview), nil
 }
 
 func getHypotheticalNextReview(result models.ReviewResult, card *models.Card, scheduler scheduler.Scheduler) (time.Time, error) {
 	newCard := card.Copy()
 	newReview := models.NewReview(result)
 	newCard.Reviews = append(models.ReviewSlice{newReview}, newCard.Reviews...)
-	return scheduler.GetNextReview(card)
-}
-
-// Returns the time in hours (if on the same day) or days (if on different days)
-// until the next review as a human-readable string. For example, "11h" or "23d".
-func nextReviewToReadableDuration(nextReview time.Time) string {
-	now := time.Now()
-	if now.After(nextReview) {
-		return "now"
-	}
-	if utils.DatesEqual(now, nextReview) {
-		difference := nextReview.Sub(now)
-		hours := difference / time.Hour
-		return fmt.Sprintf("%dh", hours)
-	} else {
-		midnightLastNight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		difference := nextReview.Sub(midnightLastNight)
-		day := 24 * time.Hour
-		days := difference / day
-		return fmt.Sprintf("%dd", days)
-	}
+	return scheduler.GetNextReview(newCard)
 }

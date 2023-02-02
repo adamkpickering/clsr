@@ -1,7 +1,7 @@
 package config
 
 type Config struct {
-	// The time until a card is due after a review has been failed.
+	// The time in hours until a card is due after a review has been failed.
 	FailedReviewInterval  uint
 	SecondReviewIntervals SecondReviewIntervals
 	IntervalMultipliers   IntervalMultipliers
