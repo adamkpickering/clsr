@@ -147,7 +147,7 @@ func cardToCardRow(card *models.Card, scheduler scheduler.Scheduler) (cardRow, e
 
 	// deal with LastReviewed
 	if len(card.Reviews) == 0 {
-		row.LastReviewed = "N/A"
+		row.LastReviewed = "never"
 	} else {
 		readableTimeDifference := utils.GetReadableTimeDifference(card.Reviews[0].Datetime, time.Now())
 		lastReviewed := fmt.Sprintf("%s ago", readableTimeDifference)
