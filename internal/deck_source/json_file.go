@@ -84,8 +84,12 @@ func (deckSource JSONFileDeckSource) ListDecks() ([]string, error) {
 
 	deckNames := []string{}
 	for _, dirEntry := range dirEntries {
-		deckName := strings.TrimSuffix(dirEntry.Name(), ".json")
-		deckNames = append(deckNames, deckName)
+		nodeName := dirEntry.Name()
+		expectedExtension := ".json"
+		if filepath.Ext(nodeName) == expectedExtension {
+			deckName := strings.TrimSuffix(nodeName, expectedExtension)
+			deckNames = append(deckNames, deckName)
+		}
 	}
 
 	return deckNames, nil

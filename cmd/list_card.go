@@ -59,11 +59,9 @@ var listCardCmd = &cobra.Command{
 	Short: "List cards",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckName := listCardFlags.DeckName
-
-		// get a DeckSource
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
-			return fmt.Errorf("failed to get DeckSource: %w", err)
+			return fmt.Errorf("failed to instantiate deck source: %w", err)
 		}
 		scheduler := scheduler.NewTwoReviewScheduler(config.DefaultConfig)
 

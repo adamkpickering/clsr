@@ -32,9 +32,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-const deckDirectory string = "decks"
-
 var cfgFile string
+var deckDirectory string
 
 var rootCmd = &cobra.Command{
 	Use:   "clsr",
@@ -56,6 +55,12 @@ func Execute() {
 }
 
 func init() {
+	localDeckDirectory, err := os.Getwd()
+	if err != nil {
+		panic(fmt.Errorf("failed to get working directory: %w", err))
+	}
+	deckDirectory = localDeckDirectory
+
 	cobra.OnInitialize(initConfig)
 	configHelp := "config file (default is $HOME/.clsr.yaml)"
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", configHelp)

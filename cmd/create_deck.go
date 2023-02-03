@@ -22,9 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"os"
 
 	"github.com/adamkpickering/clsr/internal/deck_source"
 	"github.com/adamkpickering/clsr/internal/models"
@@ -36,21 +34,14 @@ func init() {
 }
 
 var createDeckCmd = &cobra.Command{
-	Use:   "deck",
+	Use:   "deck <name>",
 	Short: "Create deck",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckName := args[0]
-
-		// check that the directory has been initialized
-		if _, err := os.Stat(deckDirectory); errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("Could not find %s. Please invoke `clsr init`.", deckDirectory)
-		}
-
-		// construct DeckSource
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
-			return fmt.Errorf("failed to construct DeckSource: %w", err)
+			return fmt.Errorf("failed to instantiate deck source: %w", err)
 		}
 
 		// check for an existing deck of this name

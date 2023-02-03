@@ -37,10 +37,9 @@ var listDeckCmd = &cobra.Command{
 	Use:   "decks",
 	Short: "List decks",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// get DeckSource
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
-			return fmt.Errorf("failed to instantiate DeckSource: %w", err)
+			return fmt.Errorf("failed to instantiate deck source: %w", err)
 		}
 
 		// get all decks

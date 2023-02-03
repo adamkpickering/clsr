@@ -93,7 +93,7 @@ to this command and clsr will do the rest.
 		// get deck source
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
-			return fmt.Errorf("failed to get deck source: %w", err)
+			return fmt.Errorf("failed to instantiate deck source: %w", err)
 		}
 
 		// check whether cards' decks already exist

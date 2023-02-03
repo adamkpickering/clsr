@@ -47,11 +47,9 @@ var studyCmd = &cobra.Command{
 	Short: "Study cards that are due",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckName := studyFlags.DeckName
-
-		// initialize objects we need
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
-			return fmt.Errorf("failed to get DeckSource: %w", err)
+			return fmt.Errorf("failed to instantiate deck source: %w", err)
 		}
 		scheduler := scheduler.NewTwoReviewScheduler(config.DefaultConfig)
 
