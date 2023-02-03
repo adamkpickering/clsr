@@ -24,7 +24,10 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/adamkpickering/clsr/internal/config"
 	"github.com/adamkpickering/clsr/internal/deck_source"
+	"github.com/adamkpickering/clsr/internal/models"
+	"github.com/adamkpickering/clsr/internal/scheduler"
 	"github.com/adamkpickering/clsr/internal/utils"
 	"github.com/alexeyco/simpletable"
 	"github.com/spf13/cobra"
@@ -42,6 +45,7 @@ var listDeckCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to instantiate deck source: %w", err)
 		}
+		scheduler := scheduler.NewTwoReviewScheduler(config.DefaultConfig)
 
 		// get all decks
 		decks, err := utils.GetDecks(deckSource)
@@ -55,18 +59,23 @@ var listDeckCmd = &cobra.Command{
 		table.Header = &simpletable.Header{
 			Cells: []*simpletable.Cell{
 				{Text: "Deck"},
-				// {Text: "Cards Due"},
-				// {Text: "Active Cards"},
-				// {Text: "Inactive Cards"},
+				{Text: "Cards Due"},
+				{Text: "Active Cards"},
+				{Text: "Inactive Cards"},
 				{Text: "Total Cards"},
 			},
 		}
 		for _, deck := range decks {
+			dueCount, err := countCardsDue(deck, scheduler)
+			if err != nil {
+				return fmt.Errorf("failed to count due cards: %w", err)
+			}
+			activeCount, inactiveCount := countActiveCards(deck)
 			row := []*simpletable.Cell{
 				{Text: deck.Name},
-				// {Text: fmt.Sprintf("%d", deck.CountCardsDue())},
-				// {Text: fmt.Sprintf("%d", deck.CountActiveCards())},
-				// {Text: fmt.Sprintf("%d", deck.CountInactiveCards())},
+				{Text: fmt.Sprintf("%d", dueCount)},
+				{Text: fmt.Sprintf("%d", activeCount)},
+				{Text: fmt.Sprintf("%d", inactiveCount)},
 				{Text: fmt.Sprintf("%d", len(deck.Cards))},
 			}
 			table.Body.Cells = append(table.Body.Cells, row)
@@ -75,4 +84,33 @@ var listDeckCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func countCardsDue(deck *models.Deck, scheduler scheduler.Scheduler) (int, error) {
+	count := 0
+	for _, card := range deck.Cards {
+		cardIsDue, err := scheduler.IsDue(card)
+		if err != nil {
+			return 0, fmt.Errorf("failed to check if card is due: %w", err)
+		}
+		if cardIsDue {
+			count += 1
+		}
+	}
+	return count, nil
+}
+
+// Returns two counts. The first is the count of active cards,
+// and the second is the count of inactive cards.
+func countActiveCards(deck *models.Deck) (int, int) {
+	activeCount := 0
+	inactiveCount := 0
+	for _, card := range deck.Cards {
+		if card.Active {
+			activeCount += 1
+		} else {
+			inactiveCount += 1
+		}
+	}
+	return activeCount, inactiveCount
 }
