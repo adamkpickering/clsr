@@ -24,10 +24,10 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/adamkpickering/clsr/pkg/config"
-	"github.com/adamkpickering/clsr/pkg/deck_source"
-	"github.com/adamkpickering/clsr/pkg/models"
-	"github.com/adamkpickering/clsr/pkg/scheduler"
+	"github.com/adamkpickering/clsr/internal/config"
+	"github.com/adamkpickering/clsr/internal/deck_source"
+	"github.com/adamkpickering/clsr/internal/models"
+	"github.com/adamkpickering/clsr/internal/scheduler"
 	"github.com/adamkpickering/clsr/views"
 	"github.com/gdamore/tcell/v2"
 	"github.com/spf13/cobra"

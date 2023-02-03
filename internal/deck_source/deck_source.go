@@ -1,7 +1,7 @@
 package deck_source
 
 import (
-	"github.com/adamkpickering/clsr/pkg/models"
+	"github.com/adamkpickering/clsr/internal/models"
 )
 
 type DeckSource interface {

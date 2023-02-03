@@ -24,8 +24,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"github.com/adamkpickering/clsr/pkg/deck_source"
-	"github.com/adamkpickering/clsr/pkg/models"
+	"github.com/adamkpickering/clsr/internal/deck_source"
+	"github.com/adamkpickering/clsr/internal/models"
 	"github.com/spf13/cobra"
 	"os"
 	"strconv"

@@ -25,11 +25,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/adamkpickering/clsr/pkg/config"
-	"github.com/adamkpickering/clsr/pkg/deck_source"
-	"github.com/adamkpickering/clsr/pkg/models"
-	"github.com/adamkpickering/clsr/pkg/scheduler"
-	"github.com/adamkpickering/clsr/pkg/utils"
+	"github.com/adamkpickering/clsr/internal/config"
+	"github.com/adamkpickering/clsr/internal/deck_source"
+	"github.com/adamkpickering/clsr/internal/models"
+	"github.com/adamkpickering/clsr/internal/scheduler"
+	"github.com/adamkpickering/clsr/internal/utils"
 	"github.com/alexeyco/simpletable"
 	"github.com/spf13/cobra"
 )

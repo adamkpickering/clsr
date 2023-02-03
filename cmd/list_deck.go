@@ -24,7 +24,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/adamkpickering/clsr/pkg/deck_source"
+	"github.com/adamkpickering/clsr/internal/deck_source"
 	"github.com/alexeyco/simpletable"
 	"github.com/spf13/cobra"
 )

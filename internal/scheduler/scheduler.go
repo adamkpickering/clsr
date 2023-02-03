@@ -1,7 +1,7 @@
 package scheduler
 
 import (
-	"github.com/adamkpickering/clsr/pkg/models"
+	"github.com/adamkpickering/clsr/internal/models"
 	"time"
 )
 

@@ -3,7 +3,7 @@ package deck_source
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/adamkpickering/clsr/pkg/models"
+	"github.com/adamkpickering/clsr/internal/models"
 	"os"
 	"path/filepath"
 	"sort"
