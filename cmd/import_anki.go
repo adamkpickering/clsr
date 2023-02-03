@@ -43,9 +43,19 @@ type ankiExportFileHeaders struct {
 }
 
 var importAnkiCmd = &cobra.Command{
-	Use:   "anki",
+	Use:   "anki <path>",
 	Short: "Import from Anki",
-	Args:  cobra.ExactArgs(1),
+	Long: `Imports decks from Anki. To export decks from Anki, click on
+File > Export. Ensure you have the following things set:
+
+- Export format: "Notes in Plain Text"
+- Include: "All Decks"
+- Only the "Include deck name" checkbox is checked
+
+Then click Export and save the file. Pass the path to this file
+to this command and clsr will do the rest.
+`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// read anki export file and split into lines
 		ankiDeckPath := args[0]
