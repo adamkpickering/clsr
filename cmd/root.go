@@ -36,14 +36,9 @@ var deckDirectory string
 var rootCmd = &cobra.Command{
 	Use:   "clsr",
 	Short: "Learn things efficiently on the CLI using spaced repetition",
-	Long: `
-clsr is a CLI tool that allows you to manage and study decks
-of virtual flash cards. It takes care of scheduling so that you do not
-review them more often than necessary. Similar to Anki and other
-spaced repetition applications, except cards are always stored in
-plain text. By doing this, we gain all the usual benefits of storing
-data in plain text, such as scriptability and the ability to commit
-data to version control.`,
+	Long: `clsr allows you to manage and study decks of virtual flash cards.
+It schedules cards according to the principle of spaced repetition
+so that you learn most efficiently.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
