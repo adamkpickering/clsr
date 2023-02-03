@@ -68,9 +68,9 @@ var listCardCmd = &cobra.Command{
 		// get a list of decks
 		decks := []*models.Deck{}
 		if cmd.Flags().Changed("deck") {
-			decks, err = getDecks(deckSource, deckName)
+			decks, err = utils.GetDecks(deckSource, deckName)
 		} else {
-			decks, err = getDecks(deckSource)
+			decks, err = utils.GetDecks(deckSource)
 		}
 		if err != nil {
 			return fmt.Errorf("failed to get decks: %w", err)

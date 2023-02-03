@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	"github.com/adamkpickering/clsr/internal/deck_source"
+	"github.com/adamkpickering/clsr/internal/utils"
 	"github.com/alexeyco/simpletable"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +44,7 @@ var listDeckCmd = &cobra.Command{
 		}
 
 		// get all decks
-		decks, err := getDecks(deckSource)
+		decks, err := utils.GetDecks(deckSource)
 		if err != nil {
 			return fmt.Errorf("failed to get decks: %w", err)
 		}

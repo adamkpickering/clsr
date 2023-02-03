@@ -3,6 +3,9 @@ package utils
 import (
 	"fmt"
 	"time"
+
+	"github.com/adamkpickering/clsr/internal/deck_source"
+	"github.com/adamkpickering/clsr/internal/models"
 )
 
 // Tells the caller whether the two passed times have the same date.
@@ -27,4 +30,31 @@ func GetReadableTimeDifference(time1, time2 time.Time) string {
 		days := difference / day
 		return fmt.Sprintf("%dd", days)
 	}
+}
+
+// If passedDeckNames is empty, reads all decks and returns them as a slice.
+// If passedDeckNames is not empty, reads and returns only the decks named in it.
+func GetDecks(deckSource deck_source.DeckSource, passedDeckNames ...string) ([]*models.Deck, error) {
+	var deckNames []string
+	if len(passedDeckNames) == 0 {
+		var err error
+		deckNames, err = deckSource.ListDecks()
+		if err != nil {
+			return []*models.Deck{}, fmt.Errorf("failed to list decks: %w", err)
+		}
+	} else {
+		deckNames = passedDeckNames
+	}
+
+	// read decks
+	decks := []*models.Deck{}
+	for _, deckName := range deckNames {
+		deck, err := deckSource.ReadDeck(deckName)
+		if err != nil {
+			return []*models.Deck{}, fmt.Errorf("failed to read deck %q: %w", deckName, err)
+		}
+		decks = append(decks, deck)
+	}
+
+	return decks, nil
 }

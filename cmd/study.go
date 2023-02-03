@@ -28,6 +28,7 @@ import (
 	"github.com/adamkpickering/clsr/internal/deck_source"
 	"github.com/adamkpickering/clsr/internal/models"
 	"github.com/adamkpickering/clsr/internal/scheduler"
+	"github.com/adamkpickering/clsr/internal/utils"
 	"github.com/adamkpickering/clsr/views"
 	"github.com/gdamore/tcell/v2"
 	"github.com/spf13/cobra"
@@ -56,9 +57,9 @@ var studyCmd = &cobra.Command{
 		// get a list of decks
 		decks := []*models.Deck{}
 		if cmd.Flags().Changed("deck") {
-			decks, err = getDecks(deckSource, deckName)
+			decks, err = utils.GetDecks(deckSource, deckName)
 		} else {
-			decks, err = getDecks(deckSource)
+			decks, err = utils.GetDecks(deckSource)
 		}
 		if err != nil {
 			return fmt.Errorf("failed to get decks: %w", err)
