@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 type JSONFileDeckSource struct {
@@ -52,14 +53,22 @@ func (deckSource JSONFileDeckSource) ReadDeck(name string) (*models.Deck, error)
 	for _, card := range deck.Cards {
 		card.Deck = deck.Name
 		sort.Stable(card.Reviews)
+		for i := range card.Reviews {
+			card.Reviews[i].Datetime = card.Reviews[i].Datetime.In(time.Local)
+		}
 	}
 
 	return deck, nil
 }
 
-func (deckSource JSONFileDeckSource) WriteDeck(deck *models.Deck) error {
-	fileName := fmt.Sprintf("%s.json", deck.Name)
-	deckPath := filepath.Join(deckSource.baseDirectory, fileName)
+func (deckSource JSONFileDeckSource) WriteDeck(passedDeck *models.Deck) error {
+	// copy deck and set location of datetimes to UTC
+	deck := passedDeck.Copy()
+	for _, card := range deck.Cards {
+		for i := range card.Reviews {
+			card.Reviews[i].Datetime = card.Reviews[i].Datetime.In(time.UTC)
+		}
+	}
 
 	// marshal contents of deck file
 	contents, err := json.MarshalIndent(deck, "", "  ")
@@ -68,6 +77,8 @@ func (deckSource JSONFileDeckSource) WriteDeck(deck *models.Deck) error {
 	}
 
 	// write deck file
+	fileName := fmt.Sprintf("%s.json", deck.Name)
+	deckPath := filepath.Join(deckSource.baseDirectory, fileName)
 	err = os.WriteFile(deckPath, contents, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write deck to file: %w", err)

@@ -15,3 +15,12 @@ func NewDeck(name string) *Deck {
 	}
 	return deck
 }
+
+func (deck *Deck) Copy() *Deck {
+	copiedDeck := NewDeck(deck.Name)
+	copiedDeck.Cards = make([]*Card, 0, len(deck.Cards))
+	for _, card := range deck.Cards {
+		copiedDeck.Cards = append(copiedDeck.Cards, card.Copy())
+	}
+	return copiedDeck
+}
