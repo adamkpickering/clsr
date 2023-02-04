@@ -51,8 +51,8 @@ func (scheduler *TwoReviewScheduler) GetNextReview(card *models.Card) (time.Time
 	}
 
 	if reviews[0].Result == models.Failed {
-		interval := scheduler.config.FailedReviewInterval * uint(time.Hour)
-		return reviews[0].Datetime.Add(time.Duration(interval)), nil
+		interval := time.Duration(scheduler.config.FailedReviewInterval) * time.Hour
+		return reviews[0].Datetime.Add(interval), nil
 	}
 
 	if reviewsLength == 1 || (reviewsLength == 2 && reviews[1].Result == models.Failed) {
@@ -60,8 +60,8 @@ func (scheduler *TwoReviewScheduler) GetNextReview(card *models.Card) (time.Time
 		if err != nil {
 			return time.Time{}, fmt.Errorf("failed to get second review interval: %w", err)
 		}
-		interval := intervalInHours * uint(time.Hour)
-		return reviews[0].Datetime.Add(time.Duration(interval)), nil
+		interval := time.Duration(intervalInHours) * time.Hour
+		return reviews[0].Datetime.Add(interval), nil
 	}
 
 	lastReview := reviews[0]
