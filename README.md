@@ -15,14 +15,13 @@ ecosystem.
 
 First, some terms:
 
-A **card** is a virtual flash card. It has a question or prompt for something
-you want to learn, and the answer to that question.  
+A **card** is a virtual flash card. It contains a question or prompt for
+something you want to learn, and the answer to that question.  
 A **deck** is a group of related cards. For example, you might make a deck
-for French words you want to learn, or for parts of syntax of a programming
-language you want to learn.
+for learning French, or for a programming language you want to learn.
 
 In `clsr`, decks take the form of JSON files. The idea is that you keep
-your deck files in a single directory. Then when you run `clsr` commands
+all of your deck files in a directory. Then when you run `clsr` commands
 from inside that directory, `clsr` can work with those files.
 Having these files in one directory also lends itself to the use of
 version control.
@@ -47,7 +46,11 @@ You should not use `clsr` if:
 
 ## Installation
 
-Have go 1.17 or later installed. Then:
+You can get a binary from the
+[releases page](https://github.com/adamkpickering/clsr/releases).
+
+Alternatively, if you have Go 1.17 or later installed, you can
+install `clsr` with:
 
 ```
 go install github.com/adamkpickering/clsr@latest
