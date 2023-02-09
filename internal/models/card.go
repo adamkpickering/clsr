@@ -15,6 +15,10 @@ const (
 
 const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 type Card struct {
 	ID       string      `json:"id"`
 	Deck     string      `json:"-"`
@@ -31,7 +35,6 @@ type Card struct {
 // From https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go
 func randomString(n int) string {
 	b := make([]byte, n)
-	rand.Seed(time.Now().UnixNano())
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
