@@ -27,6 +27,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/adamkpickering/clsr/internal/deck_source"
@@ -89,12 +90,15 @@ var createCardCmd = &cobra.Command{
 
 // Returns the editor specified in the EDITOR env var. If EDITOR is not specified,
 // or has zero length, defaults to "nano".
-func getPreferredEditor() string {
+func getPreferredEditor() (string, error) {
 	value, ok := os.LookupEnv("EDITOR")
-	if ok && len(value) > 0 {
-		return value
+	if (!ok || len(value) == 0) && runtime.GOOS == "windows" {
+		return "", errors.New("EDITOR environment variable is not set")
 	}
-	return "nano"
+	if ok && len(value) > 0 {
+		return value, nil
+	}
+	return "nano", nil
 }
 
 // Execs into the user's preferred editor and returns what they enter
@@ -125,7 +129,11 @@ func getCardFromUserViaEditor(deckName string) (*models.Card, error) {
 	firstModified := info.ModTime()
 
 	// call the user's editor to let them edit the card
-	cmd := exec.Command(getPreferredEditor(), tempFilePath)
+	editor, err := getPreferredEditor()
+	if err != nil {
+		return &models.Card{}, fmt.Errorf("failed to get editor: %w", err)
+	}
+	cmd := exec.Command(editor, tempFilePath)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	err = cmd.Run()
@@ -151,8 +159,8 @@ func getCardFromUserViaEditor(deckName string) (*models.Card, error) {
 	if len(elements) != 2 {
 		return &models.Card{}, fmt.Errorf(`splitting on "%s" did not produce exactly 2 elements`, tempFileDivider)
 	}
-	question := strings.ReplaceAll(elements[0], tempFileQuestion, "")
-	answer := strings.ReplaceAll(elements[1], tempFileAnswer, "")
+	question := strings.TrimSpace(strings.ReplaceAll(elements[0], tempFileQuestion, ""))
+	answer := strings.TrimSpace(strings.ReplaceAll(elements[1], tempFileAnswer, ""))
 	card := models.NewCard(question, answer, deckName)
 
 	return card, nil
