@@ -117,7 +117,7 @@ to this command and clsr will do the rest.
 		for _, card := range cards {
 			deck, ok := deckNameToDeck[card.Deck]
 			if !ok {
-				deck = models.NewDeck(card.Deck)
+				deck = models.NewDeck(card.Deck, true)
 				deckNameToDeck[card.Deck] = deck
 			}
 			deck.Cards = append(deck.Cards, card)

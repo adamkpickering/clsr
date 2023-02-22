@@ -9,7 +9,7 @@ import (
 func TestDeck(t *testing.T) {
 	t.Run("NewDeck", func(t *testing.T) {
 		name := "test_deck"
-		deck := NewDeck(name)
+		deck := NewDeck(name, true)
 		if deck.Name != name {
 			t.Errorf("deck has name %s but should have name %s", deck.Name, name)
 		}
@@ -17,7 +17,7 @@ func TestDeck(t *testing.T) {
 
 	t.Run("JSONMarshal", func(t *testing.T) {
 		deckName := "test_deck"
-		deck := NewDeck(deckName)
+		deck := NewDeck(deckName, true)
 		card1 := NewCard("this is question 1", "this is question 1", deckName)
 		card2 := NewCard("this is question 2", "this is question 2", deckName)
 		deck.Cards = append(deck.Cards, card1, card2)

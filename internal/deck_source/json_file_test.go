@@ -28,7 +28,7 @@ func TestJSONFileDeckSource(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create deck source: %s", err)
 		}
-		initialDeck := models.NewDeck(testDeckName)
+		initialDeck := models.NewDeck(testDeckName, true)
 		card1 := models.NewCard("card1 question", "card1 answer", testDeckName)
 		card2 := models.NewCard("card2 question", "card2 answer", testDeckName)
 		initialDeck.Cards = []*models.Card{card1, card2}
