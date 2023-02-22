@@ -93,7 +93,7 @@ func countCardsDue(deck *models.Deck, scheduler scheduler.Scheduler) (int, error
 		if err != nil {
 			return 0, fmt.Errorf("failed to check if card is due: %w", err)
 		}
-		if cardIsDue {
+		if cardIsDue && card.Active {
 			count += 1
 		}
 	}
