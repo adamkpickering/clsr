@@ -33,8 +33,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var listDeckFlags = struct {
+	All bool
+}{}
+
 func init() {
 	listCmd.AddCommand(listDeckCmd)
+	listDeckCmd.Flags().BoolVarP(&listDeckFlags.All, "all", "a", false, "list all decks, not just active ones")
 }
 
 var listDeckCmd = &cobra.Command{
@@ -48,9 +53,21 @@ var listDeckCmd = &cobra.Command{
 		scheduler := scheduler.NewTwoReviewScheduler(config.DefaultConfig)
 
 		// get all decks
-		decks, err := utils.GetDecks(deckSource)
+		allDecks, err := utils.GetDecks(deckSource)
 		if err != nil {
 			return fmt.Errorf("failed to get decks: %w", err)
+		}
+
+		// filter decks if necessary
+		decks := make([]*models.Deck, 0, len(allDecks))
+		if listDeckFlags.All {
+			decks = allDecks
+		} else {
+			for _, deck := range allDecks {
+				if deck.Active {
+					decks = append(decks, deck)
+				}
+			}
 		}
 
 		// display decks in table
@@ -65,6 +82,9 @@ var listDeckCmd = &cobra.Command{
 				{Text: "Total Cards"},
 			},
 		}
+		if cmd.Flags().Changed("all") {
+			table.Header.Cells = append(table.Header.Cells, &simpletable.Cell{Text: "Active"})
+		}
 		for _, deck := range decks {
 			dueCount, err := countCardsDue(deck, scheduler)
 			if err != nil {
@@ -77,6 +97,9 @@ var listDeckCmd = &cobra.Command{
 				{Text: fmt.Sprintf("%d", activeCount)},
 				{Text: fmt.Sprintf("%d", inactiveCount)},
 				{Text: fmt.Sprintf("%d", len(deck.Cards))},
+			}
+			if cmd.Flags().Changed("all") {
+				row = append(row, &simpletable.Cell{Text: fmt.Sprintf("%t", deck.Active)})
 			}
 			table.Body.Cells = append(table.Body.Cells, row)
 		}
