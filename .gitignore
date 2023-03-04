@@ -16,3 +16,5 @@
 
 # JSON files (decks are .json files, and we want to create test decks)
 *.json
+
+dist/
