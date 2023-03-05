@@ -46,14 +46,28 @@ You should not use `clsr` if:
 
 ## Installation
 
-You can get a binary from the
+Binaries are available from the
 [releases page](https://github.com/adamkpickering/clsr/releases).
 
-Alternatively, if you have Go 1.17 or later installed, you can
-install `clsr` with:
+
+Alternatively, you may use `go install`:
 
 ```
 go install github.com/adamkpickering/clsr@latest
+```
+
+Note that if you do this, `clsr --version` will output `development`,
+not a real version. This is because `goreleaser` or `go build` with the
+`-ldflags` argument is needed to specify the version during the build.
+
+
+## Building from Source
+
+First, install go 1.17 or later and [goreleaser](https://goreleaser.com/install/).
+Clone the `clsr` repo. Then, from the base of that repo:
+
+```
+goreleaser build --clean
 ```
 
 
