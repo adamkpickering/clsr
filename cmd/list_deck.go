@@ -23,13 +23,14 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 
 	"github.com/adamkpickering/clsr/internal/config"
 	"github.com/adamkpickering/clsr/internal/deck_source"
 	"github.com/adamkpickering/clsr/internal/models"
 	"github.com/adamkpickering/clsr/internal/scheduler"
 	"github.com/adamkpickering/clsr/internal/utils"
-	"github.com/alexeyco/simpletable"
 	"github.com/spf13/cobra"
 )
 
@@ -50,14 +51,10 @@ var listDeckCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to instantiate deck source: %w", err)
 		}
-		scheduler := scheduler.NewTwoReviewScheduler(config.DefaultConfig)
-
-		// get all decks
 		allDecks, err := utils.GetDecks(deckSource)
 		if err != nil {
 			return fmt.Errorf("failed to get decks: %w", err)
 		}
-
 		// filter decks if necessary
 		decks := make([]*models.Deck, 0, len(allDecks))
 		if listDeckFlags.All {
@@ -69,44 +66,39 @@ var listDeckCmd = &cobra.Command{
 				}
 			}
 		}
-
-		// display decks in table
-		table := simpletable.New()
-		table.SetStyle(simpletable.StyleCompactClassic)
-		table.Header = &simpletable.Header{
-			Cells: []*simpletable.Cell{
-				{Text: "Deck"},
-				{Text: "Cards Due"},
-				{Text: "Active Cards"},
-				{Text: "Inactive Cards"},
-				{Text: "Total Cards"},
-			},
-		}
-		if cmd.Flags().Changed("all") {
-			table.Header.Cells = append(table.Header.Cells, &simpletable.Cell{Text: "Active"})
-		}
-		for _, deck := range decks {
-			dueCount, err := countCardsDue(deck, scheduler)
-			if err != nil {
-				return fmt.Errorf("failed to count due cards: %w", err)
-			}
-			activeCount, inactiveCount := countActiveCards(deck)
-			row := []*simpletable.Cell{
-				{Text: deck.Name},
-				{Text: fmt.Sprintf("%d", dueCount)},
-				{Text: fmt.Sprintf("%d", activeCount)},
-				{Text: fmt.Sprintf("%d", inactiveCount)},
-				{Text: fmt.Sprintf("%d", len(deck.Cards))},
-			}
-			if cmd.Flags().Changed("all") {
-				row = append(row, &simpletable.Cell{Text: fmt.Sprintf("%t", deck.Active)})
-			}
-			table.Body.Cells = append(table.Body.Cells, row)
-		}
-		fmt.Println(table.String())
-
-		return nil
+		return printDeckTable(decks)
 	},
+}
+
+func printDeckTable(decks []*models.Deck) error {
+	scheduler := scheduler.NewTwoReviewScheduler(config.DefaultConfig)
+	writer := tabwriter.NewWriter(os.Stdout, 0, 4, 4, ' ', 0)
+	_, err := fmt.Fprintln(writer, "Deck\tCards Due\tActive Cards\tInactive Cards\tTotal Cards\tActive")
+	if err != nil {
+		return fmt.Errorf("failed to write header: %w", err)
+	}
+	for _, deck := range decks {
+		dueCount, err := countCardsDue(deck, scheduler)
+		if err != nil {
+			return fmt.Errorf("failed to count due cards: %w", err)
+		}
+		activeCount, inactiveCount := countActiveCards(deck)
+		_, err = fmt.Fprintf(writer, "%s\t%d\t%d\t%d\t%d\t%t\n",
+			deck.Name,
+			dueCount,
+			activeCount,
+			inactiveCount,
+			len(deck.Cards),
+			deck.Active,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to write row for deck %q: %w", deck.Name, err)
+		}
+	}
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("failed to flush writer: %w", err)
+	}
+	return nil
 }
 
 func countCardsDue(deck *models.Deck, scheduler scheduler.Scheduler) (int, error) {

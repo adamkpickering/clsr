@@ -3,7 +3,6 @@ module github.com/adamkpickering/clsr
 go 1.17
 
 require (
-	github.com/alexeyco/simpletable v1.0.0
 	github.com/gdamore/tcell/v2 v2.6.0
 	github.com/spf13/cobra v1.6.1
 )
