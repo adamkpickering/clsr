@@ -89,8 +89,18 @@ func EditCardViaEditor(card *Card) error {
 	if len(elements) != 2 {
 		return fmt.Errorf(`splitting on "%s" did not produce exactly 2 elements`, tempFileDivider)
 	}
-	card.Question = strings.TrimSpace(strings.ReplaceAll(elements[0], tempFileQuestion, ""))
-	card.Answer = strings.TrimSpace(strings.ReplaceAll(elements[1], tempFileAnswer, ""))
+
+	// update the card
+	newQuestion := strings.TrimSpace(strings.ReplaceAll(elements[0], tempFileQuestion, ""))
+	if newQuestion != card.Question {
+		card.Question = newQuestion
+		card.Modified = true
+	}
+	newAnswer := strings.TrimSpace(strings.ReplaceAll(elements[1], tempFileAnswer, ""))
+	if newAnswer != card.Answer {
+		card.Answer = newAnswer
+		card.Modified = true
+	}
 
 	return nil
 }
