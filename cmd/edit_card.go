@@ -31,20 +31,19 @@ import (
 )
 
 func init() {
-	setCmd.AddCommand(setCardCmd)
+	editCmd.AddCommand(editCardCmd)
 }
 
-var setCardCmd = &cobra.Command{
-	Use:   "card <card_id> (active|inactive)",
-	Short: "Set whether a card is active or inactive",
-	Args:  cobra.ExactArgs(2),
+var editCardCmd = &cobra.Command{
+	Use:   "card <card_id>",
+	Short: "Edit card",
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// search for the card in all decks
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
 			return fmt.Errorf("failed to instantiate deck source: %w", err)
 		}
-
-		// search all the decks for the card
 		decks, err := utils.GetDecks(deckSource)
 		if err != nil {
 			return fmt.Errorf("failed to get decks: %w", err)
@@ -54,49 +53,18 @@ var setCardCmd = &cobra.Command{
 			return fmt.Errorf("failed to find card %q: %w", args[0], err)
 		}
 
-		// modify the card
-		adjective := args[1]
-		switch adjective {
-		case "active":
-			if !card.Active {
-				card.Active = true
-				card.Modified = true
-			}
-		case "inactive":
-			if card.Active {
-				card.Active = false
-				card.Modified = true
-			}
-		default:
-			return fmt.Errorf("invalid adjective %q", adjective)
+		// edit the card
+		if err := models.EditCardViaEditor(card); err == models.ErrNotModified {
+			return nil
+		} else if err != nil {
+			return fmt.Errorf("failed to get user input: %w", err)
 		}
 
 		// write changed card to deck
-		err = deckSource.WriteDeck(deck)
-		if err != nil {
+		if err = deckSource.WriteDeck(deck); err != nil {
 			return fmt.Errorf("failed to write deck %q: %w", deck.Name, err)
 		}
 
 		return nil
 	},
-}
-
-func getCardFromDecks(decks []*models.Deck, cardID string) (*models.Card, *models.Deck, error) {
-	card := &models.Card{}
-	deck := &models.Deck{}
-	for _, thisDeck := range decks {
-		for _, thisCard := range thisDeck.Cards {
-			if thisCard.ID == cardID {
-				if len(card.ID) != 0 {
-					return nil, nil, fmt.Errorf("found a second card with id %q", cardID)
-				}
-				card = thisCard
-				deck = thisDeck
-			}
-		}
-	}
-	if card.ID == "" {
-		return nil, nil, fmt.Errorf("could not find card with ID %q", cardID)
-	}
-	return card, deck, nil
 }

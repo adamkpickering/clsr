@@ -22,26 +22,12 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strings"
 
 	"github.com/adamkpickering/clsr/internal/deck_source"
 	"github.com/adamkpickering/clsr/internal/models"
 	"github.com/spf13/cobra"
 )
-
-const (
-	tempFileQuestion = "# Write the question here. This line, as well as the divider below, will be removed.\n"
-	tempFileDivider  = "--------------------\n"
-	tempFileAnswer   = "# Write the answer here. This line, as well as the above divider, will be removed.\n"
-)
-
-var ErrNotModified error = errors.New("temporary file not modified")
 
 var createCardFlags = struct {
 	DeckName string
@@ -70,8 +56,8 @@ var createCardCmd = &cobra.Command{
 		}
 
 		// exec into editor to get Card fields from user
-		card, err := getCardFromUserViaEditor(deckName)
-		if err == ErrNotModified {
+		card := models.NewCard("", "", deckName)
+		if err := models.EditCardViaEditor(card); err == models.ErrNotModified {
 			return nil
 		} else if err != nil {
 			return fmt.Errorf("failed to get user input: %w", err)
@@ -86,82 +72,4 @@ var createCardCmd = &cobra.Command{
 
 		return nil
 	},
-}
-
-// Returns the editor specified in the EDITOR env var. If EDITOR is not specified,
-// or has zero length, defaults to "nano".
-func getPreferredEditor() (string, error) {
-	value, ok := os.LookupEnv("EDITOR")
-	if (!ok || len(value) == 0) && runtime.GOOS == "windows" {
-		return "", errors.New("EDITOR environment variable is not set")
-	}
-	if ok && len(value) > 0 {
-		return value, nil
-	}
-	return "nano", nil
-}
-
-// Execs into the user's preferred editor and returns what they enter
-// as a new Card. If the user exits without writing any changes,
-// error is set to ErrNotModified.
-func getCardFromUserViaEditor(deckName string) (*models.Card, error) {
-	// create temp directory
-	tempDir, err := os.MkdirTemp("", "")
-	if err != nil {
-		return &models.Card{}, fmt.Errorf("failed to create temp directory: %w", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	// write temp file into the temp directory
-	initialText := fmt.Sprintf("%s%s%s", tempFileQuestion, tempFileDivider, tempFileAnswer)
-	tempFilePath := filepath.Join(tempDir, "clsr_create_card.txt")
-	err = os.WriteFile(tempFilePath, []byte(initialText), 0644)
-	if err != nil {
-		return &models.Card{}, fmt.Errorf("failed to write temp file: %w", err)
-	}
-	defer os.Remove(tempFilePath)
-
-	// get last modified time of temp file
-	info, err := os.Stat(tempFilePath)
-	if err != nil {
-		return &models.Card{}, fmt.Errorf("failed to get temp file info: %w", err)
-	}
-	firstModified := info.ModTime()
-
-	// call the user's editor to let them edit the card
-	editor, err := getPreferredEditor()
-	if err != nil {
-		return &models.Card{}, fmt.Errorf("failed to get editor: %w", err)
-	}
-	cmd := exec.Command(editor, tempFilePath)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	err = cmd.Run()
-	if err != nil {
-		return &models.Card{}, fmt.Errorf("editor error: %w", err)
-	}
-
-	// return if the user did not write the temp file
-	info, err = os.Stat(tempFilePath)
-	if err != nil {
-		return &models.Card{}, fmt.Errorf("failed to get temp file info after potential write: %w", err)
-	}
-	if !info.ModTime().After(firstModified) {
-		return &models.Card{}, ErrNotModified
-	}
-
-	// read the contents of the temp file and parse into a Card
-	contents, err := os.ReadFile(tempFilePath)
-	if err != nil {
-		return &models.Card{}, fmt.Errorf("failed to read temp file: %w", err)
-	}
-	elements := strings.Split(string(contents), tempFileDivider)
-	if len(elements) != 2 {
-		return &models.Card{}, fmt.Errorf(`splitting on "%s" did not produce exactly 2 elements`, tempFileDivider)
-	}
-	question := strings.TrimSpace(strings.ReplaceAll(elements[0], tempFileQuestion, ""))
-	answer := strings.TrimSpace(strings.ReplaceAll(elements[1], tempFileAnswer, ""))
-	card := models.NewCard(question, answer, deckName)
-
-	return card, nil
 }

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -60,4 +61,8 @@ func (card *Card) Copy() *Card {
 	copy(newReviews, card.Reviews)
 	newCard.Reviews = newReviews
 	return &newCard
+}
+
+func (card *Card) String() string {
+	return fmt.Sprintf("%s\n%s%s\n", card.Question, tempFileDivider, card.Answer)
 }
