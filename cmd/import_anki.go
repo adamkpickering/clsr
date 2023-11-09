@@ -165,14 +165,3 @@ func parseHeaderLines(lines []string) (ankiExportFileHeaders, []string, error) {
 	}
 	return headers, []string{}, errors.New("reached end of lines with every line matching")
 }
-
-// Tells the caller whether slice has an element that is equal
-// to element.
-func contains(slice []string, element string) bool {
-	m := map[string]struct{}{}
-	for _, value := range slice {
-		m[value] = struct{}{}
-	}
-	_, present := m[element]
-	return present
-}

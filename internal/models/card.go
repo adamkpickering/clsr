@@ -6,14 +6,6 @@ import (
 	"time"
 )
 
-type parseState int
-
-const (
-	header parseState = iota
-	question
-	answer
-)
-
 const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 func init() {
