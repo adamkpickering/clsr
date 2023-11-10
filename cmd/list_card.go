@@ -47,46 +47,39 @@ type CardRow struct {
 }
 
 var listCardFlags = struct {
-	DeckName string
+	DeckNames []string
 }{}
 
 func init() {
 	listCmd.AddCommand(listCardCmd)
-	listCardCmd.Flags().StringVarP(&listCardFlags.DeckName, "deck", "d", "", "filter cards by deck")
+	listCardCmd.Flags().StringSliceVarP(&listCardFlags.DeckNames, "decks", "d", []string{}, "only list cards from these decks")
 }
 
 var listCardCmd = &cobra.Command{
 	Use:   "cards",
 	Short: "List cards",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		deckName := listCardFlags.DeckName
+		deckName := listCardFlags.DeckNames
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
 			return fmt.Errorf("failed to instantiate deck source: %w", err)
 		}
 		scheduler := scheduler.NewTwoReviewScheduler(config.DefaultConfig)
 
-		// get a list of decks
-		decks := []*models.Deck{}
-		if cmd.Flags().Changed("deck") {
-			decks, err = utils.GetDecks(deckSource, deckName)
-		} else {
-			decks, err = utils.GetDecks(deckSource)
-		}
+		// get a list of cards
+		cards, err := utils.GetCards(deckSource, deckName...)
 		if err != nil {
-			return fmt.Errorf("failed to get decks: %w", err)
+			return fmt.Errorf("failed to get cards: %w", err)
 		}
 
-		// get a list of cards
+		// convert cards to CardRows
 		var cardRows []CardRow
-		for _, deck := range decks {
-			for _, card := range deck.Cards {
-				cardRow, err := cardToCardRow(card, scheduler)
-				if err != nil {
-					return fmt.Errorf("failed to convert Card %q to CardRow: %w", card.ID, err)
-				}
-				cardRows = append(cardRows, cardRow)
+		for _, card := range cards {
+			cardRow, err := cardToCardRow(card, scheduler)
+			if err != nil {
+				return fmt.Errorf("failed to convert Card %q to CardRow: %w", card.ID, err)
 			}
+			cardRows = append(cardRows, cardRow)
 		}
 
 		return printCardTable(cardRows)

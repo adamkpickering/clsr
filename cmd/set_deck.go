@@ -25,7 +25,6 @@ import (
 	"fmt"
 
 	"github.com/adamkpickering/clsr/internal/deck_source"
-	"github.com/adamkpickering/clsr/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -44,11 +43,10 @@ var setDeckCmd = &cobra.Command{
 		}
 
 		// get deck
-		decks, err := utils.GetDecks(deckSource, args[0])
+		deck, err := deckSource.ReadDeck(args[0])
 		if err != nil {
-			return fmt.Errorf("failed to get decks: %w", err)
+			return fmt.Errorf("failed to get deck: %w", err)
 		}
-		deck := decks[0]
 
 		// modify the deck
 		switch args[1] {

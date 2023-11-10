@@ -58,3 +58,15 @@ func GetDecks(deckSource deck_source.DeckSource, passedDeckNames ...string) ([]*
 
 	return decks, nil
 }
+
+func GetCards(deckSource deck_source.DeckSource, passedDeckNames ...string) ([]*models.Card, error) {
+	decks, err := GetDecks(deckSource, passedDeckNames...)
+	if err != nil {
+		return nil, err
+	}
+	cards := make([]*models.Card, 0)
+	for _, deck := range decks {
+		cards = append(cards, deck.Cards...)
+	}
+	return cards, nil
+}
