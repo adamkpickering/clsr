@@ -13,6 +13,7 @@ import (
 )
 
 var ErrExit error = errors.New("exit study session")
+var ErrEdit error = errors.New("edit card")
 
 var StyleDefault tcell.Style
 
@@ -43,25 +44,26 @@ type StudySession struct {
 	Scheduler scheduler.Scheduler
 }
 
-func (ss StudySession) Run() error {
+// Runs a study session. If err is ErrExit, the user requested to quit
+// the study session and save changes to cards. If err is ErrEdit, the
+// user wants to edit the card whose ID is included in the first argument.
+func (ss StudySession) Run() (string, error) {
 	totalCards := len(ss.Cards)
 	for i, card := range ss.Cards {
-		err := ss.studyCard(card, totalCards, i+1)
-		if err != nil {
-			return err
+		if cardID, err := ss.studyCard(card, totalCards, i+1); err != nil {
+			return cardID, err
 		}
 	}
-	return nil
+	return "", nil
 }
 
-func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) error {
+func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) (string, error) {
 	state := questionState
 	for {
 		// render screen
 		ss.Screen.Clear()
-		err := ss.render(card, state, totalCards, cardNumber, ss.Scheduler)
-		if err != nil {
-			return err
+		if err := ss.render(card, state, totalCards, cardNumber, ss.Scheduler); err != nil {
+			return "", err
 		}
 		ss.Screen.Show()
 
@@ -79,7 +81,7 @@ func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) 
 
 			// allow user to exit cleanly and prematurely
 			if key == tcell.KeyEscape || key == tcell.KeyCtrlC || keyRune == 'q' {
-				return ErrExit
+				return "", ErrExit
 			}
 
 			// handle different keys depending on different states
@@ -88,7 +90,9 @@ func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) 
 				if keyRune == 'i' {
 					card.Active = false
 					card.Modified = true
-					return nil
+					return "", nil
+				} else if keyRune == 'e' {
+					return card.ID, ErrEdit
 				} else if key == tcell.KeyEnter || keyRune == ' ' {
 					state = questionAndAnswerState
 				}
@@ -96,7 +100,9 @@ func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) 
 				if keyRune == 'i' {
 					card.Active = false
 					card.Modified = true
-					return nil
+					return "", nil
+				} else if keyRune == 'e' {
+					return card.ID, ErrEdit
 				}
 				reviewResult, ok := keyToReviewResult[keyRune]
 				if !ok {
@@ -104,7 +110,8 @@ func (ss StudySession) studyCard(card *models.Card, totalCards, cardNumber int) 
 				}
 				newReview := models.NewReview(reviewResult)
 				card.Reviews = append(models.ReviewSlice{newReview}, card.Reviews...)
-				return nil
+				card.Modified = true
+				return "", nil
 			}
 		}
 	}
@@ -177,6 +184,7 @@ func (ss StudySession) render(card *models.Card, state studyState, totalCards, c
 		)
 		lines = append(lines, keyLine)
 	}
+	lines = append(lines, " <e>: edit card")
 	lines = append(lines, " <i>: set card to inactive")
 	lines = append(lines, " <ctrl-C>/<escape>/<q>: save studied cards & exit")
 

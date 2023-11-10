@@ -57,7 +57,7 @@ var editCardCmd = &cobra.Command{
 		if err := models.EditCardViaEditor(card); err == models.ErrNotModified {
 			return nil
 		} else if err != nil {
-			return fmt.Errorf("failed to get user input: %w", err)
+			return fmt.Errorf("failed to edit card: %w", err)
 		}
 
 		// write changed card to deck

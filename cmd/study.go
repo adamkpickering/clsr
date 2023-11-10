@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/adamkpickering/clsr/internal/config"
@@ -65,39 +66,15 @@ var studyCmd = &cobra.Command{
 			return fmt.Errorf("failed to get decks: %w", err)
 		}
 
-		// get a list of cards to study
-		var cardsToStudy []*models.Card
+		// get a list of cards
+		var cards []*models.Card
 		for _, deck := range decks {
-			for _, card := range deck.Cards {
-				isDue, err := scheduler.IsDue(card)
-				if err != nil {
-					return fmt.Errorf("failed to determine whether card %q is due: %w", card.ID, err)
-				}
-				if isDue && card.Active {
-					cardsToStudy = append(cardsToStudy, card)
-				}
-			}
+			cards = append(cards, deck.Cards...)
 		}
 
-		// initialize tcell
-		screen, err := tcell.NewScreen()
-		if err != nil {
-			return fmt.Errorf("failed to instantiate Screen: %w", err)
-		}
-		defer screen.Fini()
-		if err := screen.Init(); err != nil {
-			return fmt.Errorf("failed to initialize Screen: %w", err)
-		}
-
-		// study cards
-		ss := &views.StudySession{
-			Screen:    screen,
-			Cards:     cardsToStudy,
-			Scheduler: scheduler,
-		}
-		err = ss.Run()
-		if err != nil && err != views.ErrExit {
-			return fmt.Errorf("problem while studying cards: %w", err)
+		// study the cards
+		if err := doStudy(cards, scheduler); err != nil {
+			return err
 		}
 
 		// write the changes to the decks
@@ -110,4 +87,70 @@ var studyCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+// Runs the study TUI until there is an error, we run out of cards
+// to review, the user quits, or the user edits a card. If the user
+// chooses to edit a card, it allows them to do so, and then resumes
+// studying by calling itself. Uses recursion because it is the
+// cleanest solution for re-evaluating the set of cards that need to
+// be studied each time the user edits a card.
+func doStudy(cards []*models.Card, scheduler scheduler.Scheduler) error {
+	// get only cards that are due to be studied
+	cardsToStudy := make([]*models.Card, 0, len(cards))
+	for _, card := range cards {
+		isDue, err := scheduler.IsDue(card)
+		if err != nil {
+			return fmt.Errorf("failed to determine whether card %q is due: %w", card.ID, err)
+		}
+		if isDue && card.Active {
+			cardsToStudy = append(cardsToStudy, card)
+		}
+	}
+
+	if cardID, err := doStudyFragment(cardsToStudy, scheduler); errors.Is(err, views.ErrExit) {
+		return nil
+	} else if errors.Is(err, views.ErrEdit) {
+		card, err := getCardByID(cardID, cardsToStudy)
+		if err != nil {
+			return fmt.Errorf("failed to get card from cards to study: %w", err)
+		}
+		if err := models.EditCardViaEditor(card); err != nil && !errors.Is(err, models.ErrNotModified) {
+			return fmt.Errorf("failed to edit card %q: %w", cardID, err)
+		}
+		if err := doStudy(cardsToStudy, scheduler); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return fmt.Errorf("problem while studying cards: %w", err)
+	}
+	return nil
+}
+
+// This is a separate function because it allows screen.Fini() to be
+// called as a deferred function.
+func doStudyFragment(cardsToStudy []*models.Card, scheduler scheduler.Scheduler) (string, error) {
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		return "", fmt.Errorf("failed to instantiate Screen: %w", err)
+	}
+	defer screen.Fini()
+	if err := screen.Init(); err != nil {
+		return "", fmt.Errorf("failed to initialize Screen: %w", err)
+	}
+	ss := &views.StudySession{
+		Screen:    screen,
+		Cards:     cardsToStudy,
+		Scheduler: scheduler,
+	}
+	return ss.Run()
+}
+
+func getCardByID(cardID string, cards []*models.Card) (*models.Card, error) {
+	for _, card := range cards {
+		if card.ID == cardID {
+			return card, nil
+		}
+	}
+	return nil, fmt.Errorf("failed to find card with ID %q in passed card slice", cardID)
 }
