@@ -30,7 +30,7 @@ import (
 	"github.com/adamkpickering/clsr/internal/models"
 	"github.com/adamkpickering/clsr/internal/scheduler"
 	"github.com/adamkpickering/clsr/internal/utils"
-	"github.com/adamkpickering/clsr/views"
+	"github.com/adamkpickering/clsr/internal/views"
 	"github.com/gdamore/tcell/v2"
 	"github.com/spf13/cobra"
 )
