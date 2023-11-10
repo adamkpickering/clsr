@@ -48,6 +48,8 @@ func init() {
 }
 
 func Execute() {
+	rootCmd.SilenceErrors = true
+	rootCmd.SilenceUsage = true
 	cobra.CheckErr(rootCmd.Execute())
 }
 
