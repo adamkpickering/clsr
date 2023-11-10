@@ -42,6 +42,7 @@ func init() {
 var createCardCmd = &cobra.Command{
 	Use:   "card",
 	Short: "Create card",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckName := createCardFlags.DeckName
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)

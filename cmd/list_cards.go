@@ -58,6 +58,7 @@ func init() {
 var listCardCmd = &cobra.Command{
 	Use:   "cards",
 	Short: "List cards",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckName := listCardFlags.DeckNames
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)

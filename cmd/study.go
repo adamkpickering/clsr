@@ -48,6 +48,7 @@ func init() {
 var studyCmd = &cobra.Command{
 	Use:   "study",
 	Short: "Study cards that are due",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckName := studyFlags.DeckName
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)

@@ -46,6 +46,7 @@ func init() {
 var listDeckCmd = &cobra.Command{
 	Use:   "decks",
 	Short: "List decks",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckSource, err := deck_source.NewJSONFileDeckSource(deckDirectory)
 		if err != nil {
