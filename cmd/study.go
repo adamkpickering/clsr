@@ -24,6 +24,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 
 	"github.com/adamkpickering/clsr/internal/config"
 	"github.com/adamkpickering/clsr/internal/deck_source"
@@ -66,11 +67,14 @@ var studyCmd = &cobra.Command{
 			return fmt.Errorf("failed to get decks: %w", err)
 		}
 
-		// get a list of cards
+		// get a list of cards with randomized order
 		var cards []*models.Card
 		for _, deck := range decks {
 			cards = append(cards, deck.Cards...)
 		}
+		rand.Shuffle(len(cards), func(i, j int) {
+			cards[i], cards[j] = cards[j], cards[i]
+		})
 
 		// study the cards
 		if err := doStudy(cards, scheduler); err != nil {
