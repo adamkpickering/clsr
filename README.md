@@ -63,7 +63,7 @@ not a real version. This is because `goreleaser` or `go build` with the
 
 ## Building from Source
 
-First, install go 1.17 or later and [goreleaser](https://goreleaser.com/install/).
+First, install go 1.21 or later and [goreleaser](https://goreleaser.com/install/).
 Clone the `clsr` repo. Then, from the base of that repo:
 
 ```
