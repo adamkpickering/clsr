@@ -24,6 +24,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -43,7 +44,6 @@ type CardRow struct {
 	LastReviewed string
 	NextReview   string
 	Question     string
-	Answer       string
 }
 
 var listCardFlags = struct {
@@ -88,18 +88,19 @@ var listCardCmd = &cobra.Command{
 
 func printCardTable(cardRows []CardRow) error {
 	writer := tabwriter.NewWriter(os.Stdout, 0, 4, 4, ' ', 0)
-	_, err := fmt.Fprintln(writer, "ID\tDeck\tActive\tReview Count\tLast Reviewed\tNext Review")
+	_, err := fmt.Fprintln(writer, "ID\tDeck\tActive\tReview Count\tLast Reviewed\tNext Review\tQuestion")
 	if err != nil {
 		return fmt.Errorf("failed to write header row: %w", err)
 	}
 	for _, cardRow := range cardRows {
-		_, err = fmt.Fprintf(writer, "%s\t%s\t%t\t%d\t%s\t%s\n",
+		_, err = fmt.Fprintf(writer, "%s\t%s\t%t\t%d\t%s\t%s\t%s\n",
 			cardRow.ID,
 			cardRow.Deck,
 			cardRow.Active,
 			cardRow.ReviewCount,
 			cardRow.LastReviewed,
 			cardRow.NextReview,
+			cardRow.Question,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to write row for card %q: %w", cardRow.ID, err)
@@ -117,8 +118,7 @@ func cardToCardRow(card *models.Card, scheduler scheduler.Scheduler) (CardRow, e
 		Deck:        card.Deck,
 		Active:      card.Active,
 		ReviewCount: len(card.Reviews),
-		Question:    card.Question,
-		Answer:      card.Answer,
+		Question:    truncateQuestion(card.Question),
 	}
 
 	// deal with NextReview
@@ -145,4 +145,23 @@ func cardToCardRow(card *models.Card, scheduler scheduler.Scheduler) (CardRow, e
 		row.LastReviewed = lastReviewed
 	}
 	return row, nil
+}
+
+func truncateQuestion(question string) string {
+	// Get only the portion of question that is before a newline
+	var truncatedQuestion string
+	if index := strings.Index(question, "\n"); index < 0 {
+		truncatedQuestion = question
+	} else {
+		truncatedQuestion = question[:index]
+	}
+
+	// Truncate to maximum number of chars
+	maxChars := 60
+	r := []rune(truncatedQuestion)
+	if len(r) > maxChars {
+		trunc := r[:maxChars-3]
+		return string(trunc) + "..."
+	}
+	return truncatedQuestion
 }
