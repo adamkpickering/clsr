@@ -39,12 +39,3 @@ func TestCard(t *testing.T) {
 		}
 	})
 }
-
-// ID       string      `json:"id"`
-// Deck     string      `json:"-"`
-// Version  int         `json:"version"`
-// Active   bool        `json:"active"`
-// Modified bool        `json:"-"`
-// Question string      `json:"question"`
-// Answer   string      `json:"answer"`
-// Reviews  ReviewSlice `json:"reviews"`
