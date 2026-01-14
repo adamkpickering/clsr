@@ -193,7 +193,7 @@ func (ss StudySession) render(card *models.Card, state studyState, totalCards, c
 		return errors.New("screen is too small")
 	}
 	for lineIndex, line := range lines {
-		for i, runeValue := range line {
+		for i, runeValue := range []rune(line) {
 			ss.Screen.SetContent(i, lineIndex, runeValue, nil, StyleDefault)
 		}
 	}
